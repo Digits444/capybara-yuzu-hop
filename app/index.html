@@ -3,7 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>[hidden]{display:none!important} html,body{margin:0} img{max-width:100%}</style>
-<script>window.CAPY_APP = true; window.CAPY_VERSION = 202609250557;</script>
+<script>window.CAPY_APP = true; window.CAPY_VERSION = 202609250611;</script>
 </head><body><title>Capybara Yuzu Hop</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -711,48 +711,64 @@ touchEl.querySelectorAll('button').forEach(b => {
 
 /* App gestures: swipe left/right and hold to walk, tap (or swipe up) to hop, swipe down to flop, drop or dive. */
 const gest = new Map();
-let tapHold = 0;
-function tapJump() {
-  P.buffer = 8; touch.jump = true;
-  clearTimeout(tapHold); tapHold = setTimeout(() => { touch.jump = false; }, 260);
+// A touch that stays still for TAP_STILL_MS (or lifts sooner) is a hop; a second finger while walking hops at once.
+const TAP_STILL_MS = 60, MIN_HOLD_MS = 200;
+let lastJumpAt = -1e9, jumpTimer = 0;
+function tapJump(g) {
+  P.buffer = 8; lastJumpAt = performance.now();
+  if (g) g.jumped = true;
+  clearTimeout(jumpTimer); jumpTimer = setTimeout(gestSync, MIN_HOLD_MS + 5);
+  gestSync();
 }
 function gestSync() {
-  let l = false, r = false, d = false;
+  let l = false, r = false, d = false, j = performance.now() - lastJumpAt < MIN_HOLD_MS;
   for (const g of gest.values()) {
     if (g.mode === 'move') { if (g.dir < 0) l = true; else if (g.dir > 0) r = true; }
     if (g.mode === 'down') d = true;
+    if (g.mode === 'tap' || g.mode === 'up') j = true;   // holding the finger down keeps the hop going higher
   }
-  touch.left = l; touch.right = r; touch.down = d;
+  touch.left = l; touch.right = r; touch.down = d; touch.jump = j;
+}
+function becomeTap(g) {
+  clearTimeout(g.timer);
+  if (g.mode !== 'pending') return;
+  g.mode = 'tap'; tapJump(g);
 }
 if (APP) {
   cv.addEventListener('pointerdown', e => {
     if (state !== 'play') return;
     e.preventDefault(); initAudio();
     try { cv.setPointerCapture(e.pointerId); } catch (err) {}
-    gest.set(e.pointerId, { x0: e.clientX, y0: e.clientY, t0: performance.now(), mode: 'pending', dir: 0 });
+    const g = { x0: e.clientX, y0: e.clientY, t0: performance.now(), mode: 'pending', dir: 0, jumped: false, timer: 0 };
+    gest.set(e.pointerId, g);
+    const walking = [...gest.values()].some(o => o !== g && o.mode === 'move');
+    if (walking) becomeTap(g);
+    else g.timer = setTimeout(() => { if (gest.get(e.pointerId) === g) becomeTap(g); }, TAP_STILL_MS);
   });
   cv.addEventListener('pointermove', e => {
     const g = gest.get(e.pointerId); if (!g) return;
     const u = wrap.clientHeight / 100, th = 4 * u;
     let dx = e.clientX - g.x0; const dy = e.clientY - g.y0;
-    if (g.mode === 'pending') {
-      if (Math.abs(dx) > th && Math.abs(dx) >= Math.abs(dy)) g.mode = 'move';
-      else if (dy > th * 1.5 && dy > Math.abs(dx)) { g.mode = 'down'; P.downBuf = 8; }
-      else if (-dy > th * 1.5 && -dy > Math.abs(dx)) { g.mode = 'up'; tapJump(); }
+    if (g.mode === 'pending' || g.mode === 'tap') {
+      // A touch can still turn into a walk or a flop after it hopped.
+      if (Math.abs(dx) > th && Math.abs(dx) >= Math.abs(dy)) { clearTimeout(g.timer); g.mode = 'move'; }
+      else if (dy > th * 1.5 && dy > Math.abs(dx)) { clearTimeout(g.timer); g.mode = 'down'; P.downBuf = 8; }
+      else if (g.mode === 'pending' && -dy > th * 1.5 && -dy > Math.abs(dx)) { clearTimeout(g.timer); g.mode = 'up'; tapJump(g); }
     }
     if (g.mode === 'move') {
       // Keep the anchor close behind the finger so sliding back turns around quickly.
       if (Math.abs(dx) > th * 2.5) { g.x0 = e.clientX - Math.sign(dx) * th * 2.5; dx = e.clientX - g.x0; }
       g.dir = dx > th * .4 ? 1 : dx < -th * .4 ? -1 : 0;
-      // A clear downward flick while walking still belly flops.
+      // A clear downward flick while walking still belly flops, an upward one hops.
       if (dy > th * 3.5) { P.downBuf = 8; g.y0 = e.clientY; }
-      else if (dy < -th * 3.5) { tapJump(); g.y0 = e.clientY; }
+      else if (dy < -th * 3.5) { tapJump(g); g.y0 = e.clientY; }
     }
     gestSync();
   });
   const end = e => {
     const g = gest.get(e.pointerId); if (!g) return;
-    if (g.mode === 'pending' && e.type === 'pointerup' && performance.now() - g.t0 < 350) tapJump();
+    clearTimeout(g.timer);
+    if (g.mode === 'pending' && e.type === 'pointerup') tapJump(g);   // lifted before the still-timer: still a hop
     gest.delete(e.pointerId); gestSync();
   };
   cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
