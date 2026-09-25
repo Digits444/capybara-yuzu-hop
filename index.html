@@ -149,7 +149,7 @@
         <button id="btnSettings" class="alt">Settings</button>
       </div>
       <div class="keys" id="titleKeys"></div>
-      <p class="keys apponly">Swipe left or right to walk · tap to hop · swipe down to flop · big button to dash</p>
+      <p class="keys apponly">Swipe left or right to walk · tap the right side to hop · swipe down to flop · big button to dash</p>
     </div>
   </div>
 
@@ -196,7 +196,7 @@
         <div class="sgroup apponly">
           <h3>Touch controls</h3>
           <p class="gestures"><b>Swipe left or right</b> and hold to walk. Slide back the other way to turn around.<br>
-          <b>Tap</b> to hop. Tap again in the air to double hop, or to paddle in water.<br>
+          <b>Tap the right half</b> of the screen to hop. Tap again in the air to double hop, or to paddle in water. Taps on the left half don't hop.<br>
           <b>Swipe down</b> in the air to belly flop. On a platform it drops you through; in water, hold it to dive.<br>
           <b>Big yellow button</b> to dash. Use two thumbs: one to walk, one to hop.</p>
         </div>
@@ -582,7 +582,7 @@ function parseGround(s) { const a = []; for (const tok of s.trim().split(/\s+/))
 /* every ability works from the start; the orbs in levels 1-3 are tutorial pickups that explain one move each */
 const ABIL_LEVEL = { double: 0, dash: 1, pound: 2 };
 const ABIL_INFO = {
-  double: { name: 'Double hop!', line: () => APP ? 'Tap again while in the air for a second little hop.' : `Press ${keyLabel(settings.keys.jump)} again while in the air for a second little hop.` },
+  double: { name: 'Double hop!', line: () => APP ? 'Tap the right side again while in the air for a second little hop.' : `Press ${keyLabel(settings.keys.jump)} again while in the air for a second little hop.` },
   dash: { name: 'Zoomies dash!', line: () => (APP ? 'Press the big dash button' : `Press ${keyLabel(settings.keys.dash)} or E`) + ' to zoom forward. It smashes cookie crates and bonks baddies.' },
   pound: { name: 'Belly flop!', line: () => (APP ? 'Swipe down' : `Press ${keyLabel(settings.keys.down)}`) + ' in the air to flop down hard. Smashes crates and bonks twice as hard.' }
 };
@@ -739,8 +739,12 @@ if (APP) {
     if (state !== 'play') return;
     e.preventDefault(); initAudio();
     try { cv.setPointerCapture(e.pointerId); } catch (err) {}
-    const g = { x0: e.clientX, y0: e.clientY, t0: performance.now(), mode: 'pending', dir: 0, jumped: false, timer: 0 };
+    // Touches that start on the left half of the screen are for walking only: tapping there never hops.
+    const rect = cv.getBoundingClientRect();
+    const leftSide = e.clientX - rect.left < rect.width / 2;
+    const g = { x0: e.clientX, y0: e.clientY, t0: performance.now(), mode: 'pending', dir: 0, jumped: false, timer: 0, leftSide };
     gest.set(e.pointerId, g);
+    if (leftSide) return;
     const walking = [...gest.values()].some(o => o !== g && o.mode === 'move');
     if (walking) becomeTap(g);
     else g.timer = setTimeout(() => { if (gest.get(e.pointerId) === g) becomeTap(g); }, TAP_STILL_MS);
@@ -768,7 +772,7 @@ if (APP) {
   const end = e => {
     const g = gest.get(e.pointerId); if (!g) return;
     clearTimeout(g.timer);
-    if (g.mode === 'pending' && e.type === 'pointerup') tapJump(g);   // lifted before the still-timer: still a hop
+    if (g.mode === 'pending' && e.type === 'pointerup' && !g.leftSide) tapJump(g);   // lifted before the still-timer: still a hop
     gest.delete(e.pointerId); gestSync();
   };
   cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
