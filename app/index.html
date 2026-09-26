@@ -3,7 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>[hidden]{display:none!important} html,body{margin:0} img{max-width:100%}</style>
-<script>window.CAPY_APP = true; window.CAPY_VERSION = 202609250614;</script>
+<script>window.CAPY_APP = true; window.CAPY_VERSION = 202609260239;</script>
 </head><body><title>Capybara Yuzu Hop</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -110,6 +110,17 @@
   .hint button{font-size:12px; padding:5px 12px; box-shadow:0 3px 0 #F2C3D0; background:#fff}
   @media (max-width:560px){ .hint{font-size:11px; gap:8px} }
   #hintKeys{display:contents}
+  .hats{display:grid; grid-template-columns:repeat(6,1fr); gap:1.4cqw; width:88cqw}
+  .hat{font-family:var(--body); font-weight:800; font-size:1.35cqw; background:#fff; color:var(--cocoa);
+    border-radius:2.4cqw; padding:0 0 1.2cqh; box-shadow:0 .8cqh 0 #F2C3D0; display:flex; flex-direction:column;
+    gap:.6cqh; overflow:hidden; text-align:center; line-height:1.25}
+  .hat canvas{width:100%; aspect-ratio:4/3; height:auto; display:block}
+  .hat .nm{font-family:var(--display); font-weight:400; font-size:1.45cqw; padding-inline:.6cqw}
+  .hat .how{color:var(--cocoa-soft); padding-inline:.6cqw}
+  .hat[aria-pressed="true"]{box-shadow:0 .8cqh 0 var(--yuzu-deep); outline:.45cqw solid var(--yuzu)}
+  .hat:disabled{cursor:default; opacity:.8}
+  .hat:disabled:hover{transform:none}
+  .lv .duck{font-size:1.3cqw; color:var(--yuzu-deep)}
   #settings .card{width:84cqw; max-width:84cqw; max-height:90cqh; overflow:auto; align-items:stretch; gap:1.6cqh; padding:2.6cqh 3.4cqw; box-sizing:border-box}
   #settings h2{text-align:center; font-size:3.4cqw}
   .sgrid{display:grid; grid-template-columns:1fr 1fr; gap:2cqh 3.4cqw; text-align:left}
@@ -142,10 +153,11 @@
     <div class="card">
       <p class="eyebrow">a very cozy platformer</p>
       <h1>Capybara <span class="y">Yuzu</span> Hop</h1>
-      <p class="tag">Collect yuzu, bonk grumpy snails, and hop your way to five warm baths.</p>
+      <p class="tag">Collect yuzu with Kame the turtle, bonk grumpy snails, and hop your way to five warm baths.</p>
       <div class="row">
         <button id="btnPlay">Play ♪</button>
         <button id="btnLevels" class="alt">Choose level</button>
+        <button id="btnWardrobe" class="alt">Wardrobe</button>
         <button id="btnSettings" class="alt">Settings</button>
       </div>
       <div class="keys" id="titleKeys"></div>
@@ -157,6 +169,13 @@
     <h2>Pick a bath trip</h2>
     <div class="levels" id="levelGrid"></div>
     <button id="btnBack" class="alt">Back</button>
+  </div>
+
+  <div id="wardrobe" class="ov veil" hidden>
+    <h2>Capy's wardrobe</h2>
+    <p class="tag" id="wardLine">Every level hides one golden rubber duck. Each duck you find unlocks a new hat.</p>
+    <div class="hats" id="hatGrid"></div>
+    <button id="btnWardBack" class="alt">Back</button>
   </div>
 
   <div id="card" class="ov" hidden>
@@ -185,6 +204,7 @@
           <h3>Gameplay</h3>
           <div class="srow">Hearts <div class="seg" data-set="hearts"><button data-v="3">3</button><button data-v="5">5</button><button data-v="0">Endless</button></div></div>
           <div class="srow">Game speed <div class="seg" data-set="speed"><button data-v="1">100%</button><button data-v="0.85">85%</button><button data-v="0.7">70%</button></div></div>
+          <div class="srow">Turtle buddy <div class="seg" data-set="buddy"><button data-v="1">On</button><button data-v="0">Off</button></div></div>
           <div class="srow">Speedrun timer <div class="seg" data-set="timer"><button data-v="1">On</button><button data-v="0">Off</button></div></div>
         </div>
         <div class="sgroup">
@@ -223,6 +243,7 @@
         <div><b id="stYuzu">0/0</b>yuzu</div>
         <div><b id="stTime">0:00</b>time</div>
         <div><b id="stBonk">0</b>bonks</div>
+        <div><b id="stDuck">-</b>golden duck</div>
       </div>
       <div class="row"><button id="btnNext">Next level</button><button id="btnReplay" class="alt">Replay</button></div>
     </div>
@@ -259,7 +280,7 @@
 'use strict';
 let VW = 960; const VH = 540, T = 36;
 const cv = document.getElementById('game');
-const ctx = cv.getContext('2d');
+let ctx = cv.getContext('2d');
 const wrap = document.getElementById('wrap');
 const hintEl = document.getElementById('hint');
 let scale = 1;
@@ -329,13 +350,14 @@ const THEMES = {
 /* ---------------- levels ----------------
    ground: "height:count" runs (0 = pit). y values are tiles above the bottom; null = ground height.
    o yuzu [x,y,count] · p platform [x,y,w] · m side-mover [x,y,w,range] · v lift [x,y,w,range]
-   s snail · b bee [x,y] · ^ burrs [x,null,count] · B bouncy mushroom · C checkpoint tulip · G goal bath */
+   s snail · b bee [x,y] · f hopping frog · ^ burrs [x,null,count] · B bouncy mushroom · C checkpoint tulip · G goal bath
+   D golden rubber duck [x,y] (one hidden per level, unlocks a hat) */
 const LEVELS = [
   { name: 'Strawberry Meadow', theme: 'meadow', song: 'meadow', line: 'A breezy pink morning. Pick up yuzu on the way to bath time!',
     ground: '3:14 0:2 3:8 4:4 5:4 3:6 0:3 3:10 0:2 2:14 4:3 0:3 4:3 3:12 0:2 3:14 0:3 3:6 0:3 4:5 5:3 0:3 3:10 0:2 3:14',
     objs: [['P', 2], ['o', 5, 3, 4], ['o', 14, 5, 2], ['s', 20], ['o', 25, 4, 3], ['o', 29, 5, 3], ['p', 33, 7, 3], ['o', 33, 7, 3],
       ['p', 38, 5, 3], ['o', 38, 5, 3], ['C', 43], ['*', 44, 6, 'shield'], ['^', 47, null, 2], ['o', 47, 5, 2], ['B', 55], ['p', 54, 8, 5], ['o', 54, 8, 5],
-      ['s', 63], ['*', 64, 4, 'star'], ['o', 71, 6, 2], ['b', 81, 6], ['o', 77, 3, 3], ['o', 84, 3, 3], ['o', 88, 5, 2], ['A', 93, 3, 'double'],
+      ['s', 63], ['*', 64, 4, 'star'], ['o', 71, 6, 2], ['b', 81, 6], ['o', 77, 3, 3], ['o', 84, 3, 3], ['o', 88, 5, 2], ['A', 93, 3, 'double'], ['f', 99], ['D', 57, 12],
       ['o', 97, 6, 2], ['o', 104, 6, 3], ['*', 108, 6, 'magnet'], ['o', 108, 3, 3], ['s', 111], ['C', 117], ['o', 118, 4, 3], ['o', 121, 5, 3],
       ['p', 124, 8, 3], ['o', 124, 8, 3], ['*', 125, 9, 'cake'], ['o', 128, 3, 4], ['s', 131], ['b', 133, 6], ['o', 137, 5, 2], ['o', 141, 3, 3], ['G', 148]] },
   { name: 'Yuzu Hot Springs', theme: 'onsen', song: 'onsen', line: 'Warm pools everywhere. Tap hop to paddle, hold down to dive.',
@@ -343,7 +365,7 @@ const LEVELS = [
     water: [[10, 16, 2.7], [29, 39, 2.7], [63, 75, 2.7], [114, 124, 2.7]],
     objs: [['P', 2], ['o', 4, 3, 3], ['o', 11, 4, 4], ['s', 18], ['o', 22, 4, 3], ['o', 30, 1, 3], ['p', 32, 4, 2], ['o', 32, 4, 2],
       ['p', 35, 5, 2], ['o', 35, 5, 2], ['C', 41], ['A', 45, 3, 'dash'], ['o', 50, 6, 3], ['b', 59, 6], ['*', 60, 7, 'zoom'], ['o', 66, 1, 2], ['o', 70, 4, 3], ['b', 69, 5.5],
-      ['^', 77, null, 1], ['B', 84], ['p', 85, 10, 4], ['o', 85, 10, 4], ['s', 89], ['o', 95, 3, 3], ['o', 100, 3, 3],
+      ['^', 77, null, 1], ['B', 84], ['p', 85, 10, 4], ['o', 85, 10, 4], ['s', 89], ['o', 95, 3, 3], ['o', 100, 3, 3], ['f', 98], ['D', 73, 1],
       ['o', 108, 4, 3], ['*', 109, 6, 'shield'], ['s', 111], ['o', 115, 1, 4], ['*', 119, 1, 'star'], ['b', 118, 5.5], ['o', 120, 4, 3],
       ['C', 125], ['p', 130, 5, 1], ['o', 130, 6, 1], ['o', 133, 4, 3], ['^', 136, null, 1], ['o', 136, 6, 1], ['o', 141, 3, 4], ['G', 146]] },
   { name: 'Cotton Candy Clouds', theme: 'clouds', song: 'clouds', line: 'Hop across the fluffiest clouds in the whole sky.',
@@ -351,17 +373,17 @@ const LEVELS = [
     objs: [['P', 2], ['o', 3, 4, 3], ['p', 9, 5, 2], ['o', 9, 5, 2], ['p', 12, 6, 2], ['o', 12, 6, 2], ['m', 19, 5, 3, 4], ['o', 20, 7, 3],
       ['C', 27], ['A', 29, 5, 'pound'], ['p', 32, 6, 2], ['o', 32, 6, 2], ['p', 35, 8, 2], ['o', 35, 8, 2], ['p', 38, 7, 2], ['o', 38, 7, 2], ['b', 37, 10.5],
       ['s', 44], ['K', 42, 5, 1], ['K', 42, 6, 1], ['v', 48, 5, 2, 3], ['o', 48, 9, 2], ['p', 52, 7, 2], ['o', 52, 7, 2], ['B', 58], ['p', 60, 10, 4], ['o', 60, 10, 4],
-      ['*', 62, 11, 'star'], ['p', 66, 10, 3], ['o', 66, 10, 3], ['m', 62, 4, 3, 4], ['o', 63, 6, 3], ['C', 71], ['p', 77, 6, 2], ['o', 77, 6, 2],
+      ['*', 62, 11, 'star'], ['D', 64, 13], ['p', 66, 10, 3], ['o', 66, 10, 3], ['m', 62, 4, 3, 4], ['o', 63, 6, 3], ['C', 71], ['p', 77, 6, 2], ['o', 77, 6, 2],
       ['p', 80, 7, 2], ['o', 80, 7, 2], ['m', 83, 6, 2, 2], ['b', 84, 9.5], ['o', 90, 4, 3], ['s', 92],
       ['p', 101, 6, 2], ['o', 101, 6, 2], ['*', 101, 8, 'magnet'], ['p', 104, 7, 2], ['o', 104, 7, 2], ['C', 107], ['K', 109, 5, 2], ['K', 109, 6, 2], ['o', 111, 5, 2],
       ['v', 115, 5, 2, 3], ['o', 115, 9, 2], ['p', 119, 8, 2], ['o', 119, 8, 2], ['b', 118, 10.5], ['*', 123, 6, 'cake'], ['o', 124, 4, 3], ['s', 125],
-      ['m', 128, 5, 2, 2], ['o', 128, 7, 2], ['o', 133, 4, 3], ['G', 140]] },
+      ['m', 128, 5, 2, 2], ['o', 128, 7, 2], ['o', 133, 4, 3], ['f', 136], ['G', 140]] },
   { name: 'Glowshroom Hollow', theme: 'night', song: 'night', line: 'Tiptoe through the sleepy glowing forest. Shh, the snails are dozing.',
     ground: '3:10 2:4 3:4 0:3 3:6 2:10 0:3 3:6 0:2 4:2 0:2 4:2 5:4 2:8 3:6 0:6 4:8 3:4 0:3 3:12 0:3 4:6 2:8 0:3 4:4 0:6 3:12',
     objs: [['P', 2], ['o', 4, 3, 3], ['^', 11, null, 2], ['o', 11, 4, 2], ['o', 15, 3, 3], ['o', 18, 5, 3], ['B', 25], ['p', 26, 8, 4], ['o', 26, 8, 4],
       ['s', 31], ['s', 35], ['*', 33, 4, 'shield'], ['o', 38, 5, 2], ['C', 41], ['o', 42, 3, 3], ['o', 46, 6, 1], ['o', 50, 6, 1], ['o', 54, 5, 3], ['b', 56, 7.5],
       ['^', 60, null, 3], ['p', 59, 5, 4], ['o', 59, 5, 4], ['B', 70], ['p', 72, 9, 3], ['o', 72, 9, 3], ['p', 72, 5, 2], ['p', 75, 6, 2], ['o', 75, 6, 2],
-      ['C', 79], ['s', 83], ['o', 81, 4, 2], ['^', 88, null, 1], ['o', 91, 5, 2], ['*', 95, 6, 'magnet'], ['o', 95, 3, 3], ['o', 100, 3, 3],
+      ['C', 79], ['s', 83], ['D', 73, 12], ['f', 98], ['o', 81, 4, 2], ['^', 88, null, 1], ['o', 91, 5, 2], ['*', 95, 6, 'magnet'], ['o', 95, 3, 3], ['o', 100, 3, 3],
       ['o', 106, 6, 2], ['C', 109], ['*', 109, 7, 'star'], ['K', 111, 4, 1], ['K', 111, 5, 1], ['K', 111, 6, 1], ['o', 112, 4, 2],
       ['^', 116, null, 2], ['o', 116, 4, 2], ['s', 119], ['o', 123, 5, 2], ['B', 127], ['p', 129, 10, 3], ['o', 129, 10, 3],
       ['p', 131, 6, 2], ['o', 131, 6, 2], ['o', 137, 3, 4], ['G', 142]] },
@@ -369,16 +391,16 @@ const LEVELS = [
     ground: '4:8 0:3 4:4 5:4 6:3 0:6 5:6 1:8 4:6 0:9 5:5 0:10 5:4 3:8 0:3 4:3 0:3 5:3 0:3 4:14 0:3 5:4 0:4 4:40',
     water: [[34, 42, 3.7]],
     objs: [['P', 2], ['o', 2, 4, 3], ['o', 8, 6, 3], ['o', 15, 5, 3], ['s', 17], ['o', 19, 6, 3], ['m', 23, 6, 2, 3], ['o', 23, 8, 3],
-      ['b', 31, 8], ['o', 30, 5, 3], ['o', 36, 1, 4], ['C', 43], ['^', 45, null, 1], ['o', 44, 4, 1], ['*', 46, 6, 'zoom'], ['v', 49, 4, 2, 3], ['o', 49, 8, 2],
+      ['b', 31, 8], ['o', 30, 5, 3], ['o', 36, 1, 4], ['C', 43], ['^', 45, null, 1], ['o', 44, 4, 1], ['*', 46, 6, 'zoom'], ['v', 49, 4, 2, 3], ['o', 49, 8, 2], ['D', 51, 11],
       ['p', 53, 7, 2], ['o', 53, 7, 2], ['b', 55, 10.5], ['B', 60], ['p', 62, 10, 3], ['o', 62, 10, 3], ['p', 67, 10, 3], ['o', 67, 10, 3],
       ['m', 63, 5, 3, 5], ['o', 64, 7, 3], ['C', 73], ['s', 78], ['s', 81], ['o', 77, 3, 3], ['o', 85, 6, 2], ['o', 91, 7, 2], ['o', 97, 7, 2],
-      ['*', 100, 6, 'star'], ['o', 101, 4, 3], ['b', 103, 6.5], ['^', 105, null, 2], ['o', 105, 6, 2], ['K', 109, 4, 1], ['K', 109, 5, 1],
+      ['*', 100, 6, 'star'], ['o', 101, 4, 3], ['f', 102], ['b', 103, 6.5], ['^', 105, null, 2], ['o', 105, 6, 2], ['K', 109, 4, 1], ['K', 109, 5, 1],
       ['o', 113, 7, 3], ['o', 116, 5, 2], ['*', 118, 7, 'shield'], ['m', 120, 5, 2, 2], ['o', 120, 7, 2],
       ['C', 126], ['X', 145], ['o', 153, 5, 3], ['G', 158]] }
 ];
 
 /* ---------------- settings ---------------- */
-const DEFAULTS = { master: 80, music: 70, sfx: 80, hearts: 3, speed: 1, timer: 0, effects: 'full', touch: 'auto',
+const DEFAULTS = { master: 80, music: 70, sfx: 80, hearts: 3, speed: 1, timer: 0, buddy: 1, effects: 'full', touch: 'auto',
   keys: { left: 'KeyA', right: 'KeyD', jump: 'KeyW', down: 'KeyS', dash: 'ShiftLeft' } };
 let settings = JSON.parse(JSON.stringify(DEFAULTS));
 try {
@@ -565,6 +587,12 @@ const sfx = {
     if (!actx) return; const t = actx.currentTime;
     [0, .26].forEach(d => { tone('sawtooth', 330, t + d, .22, .12, { lp: 1300, slide: 290 }); tone('square', 336, t + d, .22, .05, { lp: 900, slide: 300 }); });
   },
+  quack() {
+    if (!actx) return; const t = actx.currentTime;
+    [0, .16].forEach(d => tone('sawtooth', 560, t + d, .13, .09, { lp: 1600, slide: 430 }));
+    [84, 88, 91, 96].forEach((m, i) => inst('bell', hz(m), t + .3 + i * .07, .2, .12));
+  },
+  ribbit() { if (!actx) return; const t = actx.currentTime; tone('square', 240, t, .07, .04, { lp: 900, slide: 330 }); },
   bossHit() { if (!actx) return; const t = actx.currentTime; tone('triangle', 520, t, .22, .25, { slide: 170 }); tone('sine', 1040, t, .12, .1); noise(t, .1, .12, 'bandpass', 1500); }
 };
 
@@ -573,8 +601,55 @@ let state = 'title', lvl = null, levelIndex = 0, tick = 0;
 const cam = { x: 0 };
 const P = { x: 0, y: 0, w: 34, h: 28, vx: 0, vy: 0, dir: 1, ground: false, onPlat: null, coyote: 0, buffer: 0, inv: 0, hearts: 3, walk: 0, sq: 0, inWater: false, drop: 0, blink: 0, sit: false };
 let respawn = { x: 0, y: 0 }, parts = [], ambient = [], yuzuGot = 0, bonks = 0, frames = 0, clearT = 0;
-let save = { best: {} };
-try { const s = JSON.parse(localStorage.getItem('capyHop') || 'null'); if (s && s.best) save = s; } catch (e) {}
+/* Kame the turtle buddy: walks along capy's recent path a little way behind, and can't be hurt */
+const buddy = { x: 0, y: 0, dir: 1, walk: 0, hop: 0, hv: 0, idle: 0, hide: 0, trail: [], air: false, swim: false };
+const buddyOn = () => settings.buddy !== 0;
+function resetBuddy(x, y, dir) {
+  buddy.trail = [];
+  for (let i = 14; i >= 0; i--) buddy.trail.push({ x: x - i * 3 * dir, y, air: false, swim: false });
+  buddy.x = x - 42 * dir; buddy.y = y; buddy.dir = dir; buddy.hop = 0; buddy.hv = 0; buddy.idle = 0; buddy.hide = 0;
+}
+function buddyCheer() { if (buddy.hop === 0 && buddy.hide === 0) buddy.hv = -3.2; }
+function updateBuddy() {
+  const tr = buddy.trail, cx = P.x + P.w / 2, fy = P.y + P.h, last = tr[tr.length - 1];
+  if (Math.hypot(cx - last.x, fy - last.y) >= 3) {
+    tr.push({ x: cx, y: fy, air: !P.ground && !P.inWater, swim: P.inWater });
+    if (tr.length > 160) tr.shift();
+    buddy.idle = 0;
+  } else buddy.idle++;
+  // aim for the point about 42px back along capy's path
+  let d = 0, i = tr.length - 1;
+  while (i > 0 && d < 42) { d += Math.hypot(tr[i].x - tr[i - 1].x, tr[i].y - tr[i - 1].y); i--; }
+  const tgt = tr[i], ox = buddy.x;
+  buddy.x += (tgt.x - buddy.x) * .3; buddy.y += (tgt.y - buddy.y) * .3;
+  const dx = buddy.x - ox;
+  if (Math.abs(dx) > .3) buddy.dir = dx > 0 ? 1 : -1;
+  buddy.walk += Math.abs(dx) * .14;
+  buddy.air = tgt.air; buddy.swim = tgt.swim;
+  if (buddy.hide > 0) buddy.hide--;
+  if (buddy.hv !== 0 || buddy.hop < 0) { buddy.hop += buddy.hv; buddy.hv += .35; if (buddy.hop >= 0) { buddy.hop = 0; buddy.hv = 0; } }
+  // Kame sniffs out yuzu it walks past
+  for (const y of lvl.yuzu) {
+    if (y.got || Math.abs(y.x - buddy.x) > 20 || Math.abs(y.y - (buddy.y - 10)) > 22) continue;
+    y.got = true; yuzuGot++; sfx.yuzu(); buddyCheer();
+    emit(y.x, y.y, 'spark', 8, { c: '#B8F0C0', speed: 2.4 });
+    floatText(y.x, y.y - 14, 'Kame got one!', '#3E8F5A');
+  }
+}
+
+let save = { best: {}, ducks: {}, hat: 'none' };
+try { const s = JSON.parse(localStorage.getItem('capyHop') || 'null'); if (s && s.best) save = { ducks: {}, hat: 'none', ...s }; } catch (e) {}
+/* hats: each one is unlocked by the golden duck hidden in one level */
+const HATS = [
+  { id: 'none', name: 'Just capy', lvl: -1 },
+  { id: 'leaf', name: 'Yuzu leaf', lvl: 0 },
+  { id: 'towel', name: 'Onsen towel', lvl: 1 },
+  { id: 'bow', name: 'Cloud bow', lvl: 2 },
+  { id: 'shroom', name: 'Glowshroom cap', lvl: 3 },
+  { id: 'crown', name: 'Royal crown', lvl: 4 }
+];
+const hatOpen = h => h.lvl < 0 || !!save.ducks[h.lvl];
+const wornHat = () => { const h = HATS.find(h => h.id === save.hat); return h && hatOpen(h) ? h.id : 'none'; };
 function persist() { try { localStorage.setItem('capyHop', JSON.stringify(save)); } catch (e) {} }
 
 function parseGround(s) { const a = []; for (const tok of s.trim().split(/\s+/)) { const [h, n] = tok.split(':').map(Number); for (let i = 0; i < n; i++) a.push(h); } return a; }
@@ -607,7 +682,7 @@ function loadLevel(i) {
   const L = LEVELS[i]; const gh = parseGround(L.ground); const W = gh.length;
   const g = c => gh[clamp(c, 0, W - 1)];
   lvl = { i, def: L, th: THEMES[L.theme], gh, W, plats: [], yuzu: [], enemies: [], spikes: [], spikeCols: new Set(), shrooms: [], checks: [], goal: null, runs: [],
-    orbs: [], powers: [], blocks: [], boss: null, arena: null, waves: [],
+    orbs: [], powers: [], blocks: [], boss: null, arena: null, waves: [], duck: null,
     water: (L.water || []).map(([a, b, s]) => ({ x0: a * T, x1: b * T, y: VH - s * T })) };
   let start = { x: 2 * T, y: VH - g(2) * T - P.h };
   for (const o of L.objs) {
@@ -619,6 +694,8 @@ function loadLevel(i) {
       case 'p': lvl.plats.push({ x: x * T, y: surf, w: n * T, dx: 0, dy: 0, kind: 's' }); break;
       case 'm': case 'v': lvl.plats.push({ x: x * T, y: surf, w: n * T, bx: x * T, by: surf, range: r * T, kind: k, t: 0, dx: 0, dy: 0 }); break;
       case 's': lvl.enemies.push({ kind: 'snail', x: x * T + 3, y: surf - 22, w: 30, h: 22, dir: -1, h0: y, alive: true, t: hash(x) * 100 }); break;
+      case 'f': lvl.enemies.push({ kind: 'frog', x: x * T + 3, y: surf - 24, w: 30, h: 24, dir: -1, h0: y, alive: true, t: hash(x) * 100, vx: 0, vy: 0, air: false, wait: 50 + hash(x + 1) * 60 }); break;
+      case 'D': lvl.duck = { x: x * T + T / 2, y: surf - T / 2, got: false, had: !!save.ducks[i] }; break;
       case 'b': lvl.enemies.push({ kind: 'bee', bx: x * T + T / 2, by: surf - T / 2, x: 0, y: 0, w: 28, h: 24, alive: true, t: hash(x) * 200, dir: 1 }); break;
       case '^': for (let j = 0; j < n; j++) { const c = x + j, sy = VH - g(c) * T; lvl.spikes.push({ x: c * T + 5, y: sy - 18, w: T - 10, h: 18, cx: c * T + T / 2, base: sy }); lvl.spikeCols.add(c); } break;
       case 'B': lvl.shrooms.push({ x: x * T + T / 2, top: surf - 26, base: surf, sq: 0 }); break;
@@ -641,6 +718,7 @@ function loadLevel(i) {
     shield: false, power: null, powerT: 0, powerMax: 1, dashT: 0, dashCd: 0, dashBuf: 0, downBuf: 0, pound: 0, doubleUsed: false, airDash: true, noCut: false,
     abil: new Set(Object.keys(ABIL_LEVEL)) });
   respawn = { ...start };
+  resetBuddy(start.x + P.w / 2, start.y + P.h, 1);
   parts = []; yuzuGot = 0; bonks = 0; frames = 0; clearT = 0;
   cam.x = clamp(P.x - VW * .35, 0, W * T - VW);
   ambient = [];
@@ -785,7 +863,7 @@ if (APP) {
 
 /* ---------------- UI ---------------- */
 const $ = id => document.getElementById(id);
-const OVS = ['title', 'levels', 'pause', 'clear', 'final', 'settings'];
+const OVS = ['title', 'levels', 'pause', 'clear', 'final', 'settings', 'wardrobe'];
 function showOv(id) { OVS.forEach(o => $(o).hidden = o !== id); }
 function toggleMusic() {
   musicOn = !musicOn;
@@ -868,7 +946,7 @@ document.querySelectorAll('#settings .seg').forEach(seg => {
   const k = seg.dataset.set;
   seg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
     const v = b.dataset.v;
-    settings[k] = (k === 'hearts' || k === 'speed' || k === 'timer') ? Number(v) : v;
+    settings[k] = (k === 'hearts' || k === 'speed' || k === 'timer' || k === 'buddy') ? Number(v) : v;
     if (k === 'hearts') P.hearts = Math.min(Math.max(P.hearts, 1), maxHearts());
     if (k === 'touch') applyTouch();
     saveSettings(); syncSettingsUI(); sfx.click();
@@ -894,9 +972,9 @@ $('btnSetDefaults').onclick = () => {
 $('btnResetProg').onclick = () => { $('setBtns').hidden = true; $('confirmRow').hidden = false; $('btnEraseNo').focus(); };
 $('btnEraseNo').onclick = () => { $('confirmRow').hidden = true; $('setBtns').hidden = false; };
 $('btnEraseYes').onclick = () => {
-  save = { best: {} }; persist();
+  save = { best: {}, ducks: {}, hat: 'none' }; persist();
   $('confirmRow').hidden = true; $('setBtns').hidden = false;
-  $('bindNote').textContent = 'Progress erased. Every level is fresh again.';
+  $('bindNote').textContent = 'Progress erased. Every level (and every duck) is fresh again.';
 };
 $('btnSettings').onclick = openSettings;
 $('btnPauseSettings').onclick = openSettings;
@@ -910,6 +988,7 @@ function startLevel(i) {
   levelIndex = i; loadLevel(i); state = 'play'; showOv(null);
   playSong(LEVELS[i].song);
   showCard('Level ' + (i + 1) + ' of 5', LEVELS[i].name, LEVELS[i].line, 2600);
+  if (buddyOn() && i === 0) floatText(buddy.x, buddy.y - 34, 'Kame tags along!', '#3E8F5A');
   cv.focus && cv.focus();
 }
 function nextLevel() { if (levelIndex < LEVELS.length - 1) startLevel(levelIndex + 1); else showFinal(); }
@@ -924,12 +1003,39 @@ function buildLevelGrid() {
     const b = document.createElement('button'); b.className = 'lv'; b.id = 'lv' + i;
     const best = save.best[i];
     const total = (() => { let n = 0; L.objs.forEach(o => { if (o[0] === 'o') n += (o[3] || 1); }); return n; })();
-    b.innerHTML = `<span class="sw" style="background:linear-gradient(${th.sky[0]},${th.sky[1]})">${i + 1}</span><span class="nm">${L.name}</span><span class="best">${best != null ? '♥ ' + best + ' / ' + total + ' yuzu' : 'not visited yet'}</span>`;
+    b.innerHTML = `<span class="sw" style="background:linear-gradient(${th.sky[0]},${th.sky[1]})">${i + 1}</span><span class="nm">${L.name}</span><span class="best">${best != null ? '♥ ' + best + ' / ' + total + ' yuzu' : 'not visited yet'}</span><span class="duck">${save.ducks[i] ? 'golden duck found' : 'golden duck: ???'}</span>`;
     b.onclick = () => startLevel(i);
     g.appendChild(b);
   });
 }
 $('btnPlay').onclick = () => startLevel(0);
+function buildWardrobe() {
+  const g = $('hatGrid'); g.innerHTML = '';
+  const worn = wornHat(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+  HATS.forEach(h => {
+    const open = hatOpen(h);
+    const b = document.createElement('button'); b.className = 'hat'; b.type = 'button';
+    b.disabled = !open; b.setAttribute('aria-pressed', String(worn === h.id));
+    const how = h.lvl < 0 ? 'always here' : open ? 'from level ' + (h.lvl + 1) : 'find the duck in level ' + (h.lvl + 1);
+    b.innerHTML = `<canvas width="${160 * dpr}" height="${120 * dpr}"></canvas><span class="nm">${open ? h.name : '???'}</span><span class="how">${how}</span>`;
+    // Draw a little portrait with the shared capy painter by pointing it at this canvas for a moment.
+    const main = ctx; ctx = b.querySelector('canvas').getContext('2d');
+    const sky = THEMES[LEVELS[Math.max(0, h.lvl)].theme].sky;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const bg = ctx.createLinearGradient(0, 0, 0, 120); bg.addColorStop(0, sky[0]); bg.addColorStop(1, sky[1]);
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, 160, 120);
+    ctx.translate(80, 108); ctx.scale(1.7, 1.7);
+    drawCapy(-5, 0, { dir: 1, sit: true, happy: open, hat: open ? h.id : 'none', noShadow: false, still: true });
+    if (!open) { ctx.font = `22px ${FONT_D}`; ctx.textAlign = 'center'; ctx.fillStyle = '#FFFFFF'; ctx.fillText('?', 13, -46); }
+    ctx = main;
+    b.onclick = () => { save.hat = h.id; persist(); sfx.click(); buildWardrobe(); };
+    g.appendChild(b);
+  });
+  const n = Object.keys(save.ducks).length;
+  $('wardLine').textContent = n ? `${n} of 5 golden ducks found. Pick a hat for capy!` : 'Every level hides one golden rubber duck. Each duck you find unlocks a new hat.';
+}
+$('btnWardrobe').onclick = () => { initAudio(); sfx.click(); buildWardrobe(); showOv('wardrobe'); };
+$('btnWardBack').onclick = () => { sfx.click(); showOv('title'); };
 $('btnLevels').onclick = () => { initAudio(); sfx.click(); buildLevelGrid(); showOv('levels'); };
 $('btnBack').onclick = () => { sfx.click(); showOv('title'); };
 $('btnResume').onclick = () => setPause(false);
@@ -948,6 +1054,7 @@ function showClearMenu() {
   $('stYuzu').textContent = yuzuGot + '/' + lvl.total;
   const sec = Math.floor(frames / 60); $('stTime').textContent = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
   $('stBonk').textContent = bonks;
+  $('stDuck').textContent = !lvl.duck ? '-' : lvl.duck.got ? (lvl.duck.had ? 'again!' : 'found!') : save.ducks[levelIndex] ? 'home' : '???';
   $('btnNext').textContent = levelIndex < LEVELS.length - 1 ? 'Next level' : 'The end ♥';
   showOv('clear');
   setTimeout(() => $('btnNext').focus(), 50);
@@ -956,7 +1063,8 @@ function showFinal() {
   state = 'final';
   let got = 0, tot = 0;
   LEVELS.forEach((L, i) => { got += save.best[i] || 0; L.objs.forEach(o => { if (o[0] === 'o') tot += (o[3] || 1); }); });
-  $('finalLine').textContent = `Capy visited every bath and carried ${got} of ${tot} yuzu home. Time for a very long nap.`;
+  const dn = Object.keys(save.ducks).length;
+  $('finalLine').textContent = `Capy visited every bath and carried ${got} of ${tot} yuzu home` + (dn === 5 ? ', plus every golden duck!' : dn ? ` and ${dn} of 5 golden ducks.` : '.') + ' Time for a very long nap.';
   showOv('final'); playSong('title');
 }
 
@@ -987,7 +1095,7 @@ function hurt(fromX) {
     floatText(P.x + P.w / 2, P.y - 20, 'pop! safe~', '#3E8FC4');
     return;
   }
-  P.dashT = 0; P.pound = 0;
+  P.dashT = 0; P.pound = 0; buddy.hide = 70;
   if (!endless()) P.hearts--;
   P.inv = 100; P.vy = -6; P.vx = (P.x + P.w / 2 < fromX ? -1 : 1) * 4.5;
   sfx.hurt(); emit(P.x + P.w / 2, P.y, 'heart', 5, { c: '#FF8FAB', up: 1.5 }); floatText(P.x + P.w / 2, P.y - 20, 'oof!', '#D9476E');
@@ -998,6 +1106,7 @@ function doRespawn(ko) {
   const b = lvl.boss;
   if (b && !b.defeated && lvl.arena.locked) { b.x = lvl.arena.x1 - b.w - 30; b.y = b.gy - b.h; b.vy = 0; b.vx = 0; b.state = 'walk'; b.t = 0; lvl.waves = []; }
   P.x = respawn.x; P.y = respawn.y; P.vx = 0; P.vy = 0; P.inv = 90; P.hearts = ko ? maxHearts() : Math.max(1, P.hearts);
+  resetBuddy(P.x + P.w / 2, P.y + P.h, 1);
   emit(P.x + P.w / 2, P.y + P.h / 2, 'spark', 14, { c: '#FFE27A', speed: 3 });
   floatText(P.x + P.w / 2, P.y - 16, ko ? 'Capy tries again!' : 'wheee… again!', '#5B3A29');
 }
@@ -1025,6 +1134,8 @@ function step() {
       const front = Math.floor((e.dir > 0 ? e.x + e.w + 2 : e.x - 2) / T);
       if (front < 0 || front >= lvl.W || lvl.gh[front] !== e.h0 || lvl.spikeCols.has(front) ||
           lvl.blocks.some(b => b.alive && Math.floor(b.x / T) === front && b.y + b.h === VH - e.h0 * T)) e.dir *= -1;
+    } else if (e.kind === 'frog') {
+      updateFrog(e);
     } else {
       const nx = e.bx + Math.sin(e.t * .02) * T * 1.4 - e.w / 2;
       e.dir = nx > e.x ? 1 : -1; e.x = nx; e.y = e.by + Math.sin(e.t * .07) * 9 - e.h / 2;
@@ -1034,7 +1145,7 @@ function step() {
   for (const p of parts) { p.life++; p.x += p.vx; p.y += p.vy; p.vy += p.g; if (p.type !== 'text') p.vx *= .97; }
   parts = parts.filter(p => p.life < p.max);
 
-  if (state === 'play') { frames++; if (lvl.boss) updateBoss(); updatePlayer(); }
+  if (state === 'play') { frames++; if (lvl.boss) updateBoss(); updatePlayer(); if (buddyOn() && state === 'play') updateBuddy(); }
   else updateClear();
 
   let target = P.x + P.w / 2 - VW * .4 + P.dir * 50;
@@ -1043,9 +1154,33 @@ function step() {
   cam.x = clamp(cam.x, 0, lvl.W * T - VW);
 }
 
+/* frogs sit, then hop about two tiles toward capy; they never hop into pits, burrs, crates or walls */
+function frogPathOk(e, dir) {
+  const a = dir > 0 ? e.x : e.x - 64, b = dir > 0 ? e.x + e.w + 64 : e.x + e.w;
+  for (let c = Math.floor(a / T); c <= Math.floor((b - .001) / T); c++) {
+    if (c < 0 || c >= lvl.W || lvl.gh[c] !== e.h0 || lvl.spikeCols.has(c)) return false;
+    if (lvl.blocks.some(k => k.alive && Math.floor(k.x / T) === c && k.y + k.h === VH - e.h0 * T)) return false;
+  }
+  return true;
+}
+function updateFrog(e) {
+  const floor = VH - e.h0 * T - e.h;
+  if (!e.air) {
+    if (--e.wait > 0) return;
+    const dx = P.x + P.w / 2 - (e.x + e.w / 2);
+    if (Math.abs(dx) < 320) e.dir = dx < 0 ? -1 : 1;
+    if (!frogPathOk(e, e.dir)) { e.dir *= -1; if (!frogPathOk(e, e.dir)) { e.wait = 40; return; } }
+    e.air = true; e.vy = -8.5; e.vx = e.dir * 1.7;
+    if (Math.abs(dx) < VW * .6) sfx.ribbit();
+  } else {
+    e.x += e.vx; e.vy += .45; e.y += e.vy;
+    if (e.y >= floor) { e.y = floor; e.air = false; e.vx = 0; e.wait = 70 + Math.random() * 50; }
+  }
+}
+
 const has = a => P.abil && P.abil.has(a);
 function bonkEnemy(e) {
-  e.alive = false; bonks++; sfx.stomp();
+  e.alive = false; bonks++; sfx.stomp(); buddyCheer();
   emit(e.x + e.w / 2, e.y + e.h / 2, 'heart', 7, { c: '#FF8FAB', up: 1.5, speed: 2 });
   floatText(e.x + e.w / 2, e.y - 10, CUTE_BONK[bonks % CUTE_BONK.length], '#D9476E');
 }
@@ -1062,7 +1197,7 @@ function flopLand(y) {
   for (const e of lvl.enemies) if (e.alive && Math.abs(e.x + e.w / 2 - pcx) < 90 && Math.abs(e.y + e.h - y) < 40) bonkEnemy(e);
 }
 function grabPower(p) {
-  p.got = true; sfx.power();
+  p.got = true; sfx.power(); buddyCheer();
   const info = POWERS[p.type];
   emit(p.x, p.y, 'spark', 12, { c: '#FFE27A', speed: 3 });
   floatText(p.x, p.y - 22, info.name + '!', '#E0457B');
@@ -1317,12 +1452,23 @@ function updatePlayer() {
       if (d < 230 && d > 1) { y.x += dx / d * 6.5; y.y += dy / d * 6.5; }
     }
     if (Math.abs(y.x - pcx) < 26 && Math.abs(y.y - pcy) < 28) {
-      y.got = true; yuzuGot++; sfx.yuzu();
+      y.got = true; yuzuGot++; sfx.yuzu(); if (yuzuGot % 4 === 0) buddyCheer();
       emit(y.x, y.y, 'spark', 8, { c: '#FFD34D', speed: 2.4 });
       if (yuzuGot % 3 === 1) floatText(y.x, y.y - 14, CUTE_YUZU[yuzuGot % CUTE_YUZU.length], '#E08A00');
     }
   }
   for (const p of lvl.powers) if (!p.got && Math.abs(p.x - pcx) < 28 && Math.abs(p.y - pcy) < 32) grabPower(p);
+  const dk = lvl.duck;
+  if (dk && !dk.got && Math.abs(dk.x - pcx) < 30 && Math.abs(dk.y - pcy) < 34) {
+    dk.got = true; sfx.quack();
+    emit(dk.x, dk.y, 'spark', 20, { c: '#FFE27A', speed: 4 }); emit(dk.x, dk.y, 'heart', 6, { c: '#FF8FAB', speed: 2.5 });
+    floatText(dk.x, dk.y - 26, 'quack!', '#E08A00');
+    if (!save.ducks[lvl.i]) {
+      save.ducks[lvl.i] = true; persist();
+      const hat = HATS.find(h => h.lvl === lvl.i);
+      showCard('Secret found', 'Golden rubber duck!', `You unlocked the ${hat.name.toLowerCase()}. Try it on in the Wardrobe.`, 3800);
+    }
+  }
   for (const o of lvl.orbs) {
     if (o.got || Math.abs(o.x - pcx) > 30 || Math.abs(o.y - pcy) > 36) continue;
     o.got = true; P.abil.add(o.ab); sfx.orb();
@@ -1368,6 +1514,9 @@ function updateClear() {
   } else {
     P.sit = true; P.x = g.x - 4 - P.w / 2; P.y = g.y - 30 - P.h;
   }
+  buddy.x += (g.x - 36 - buddy.x) * .1; buddy.y += (g.y - 36 - buddy.y) * .1; buddy.dir = 1; buddy.air = false; buddy.swim = false; buddy.hide = 0; buddy.idle = 0;
+  if (clearT === 45) buddyCheer();
+  if (buddy.hv !== 0 || buddy.hop < 0) { buddy.hop += buddy.hv; buddy.hv += .35; if (buddy.hop >= 0) { buddy.hop = 0; buddy.hv = 0; } }
   if (clearT % 14 === 0) emit(g.x + (Math.random() - .5) * 60, g.y - 50, 'heart', 1, { c: ['#FF8FAB', '#FFB627', '#8FDDBE'][clearT % 3], angle: -Math.PI / 2, spread: .8, speed: 1.4, g: -.01, life: 70 });
   if (clearT === 20) emit(g.x, g.y - 40, 'spark', 26, { c: '#FFE27A', speed: 4 });
   if (clearT === 90 && state === 'clear') showClearMenu();
@@ -1671,6 +1820,20 @@ function drawEnemyBody(e) {
     ctx.strokeStyle = 'rgba(120,70,110,.45)'; ctx.lineWidth = 2; ctx.beginPath();
     for (let a = 0; a < 11; a += .25) ctx.lineTo(-3 + Math.cos(a) * a * 1.1, -17 + Math.sin(a) * a * 1.1); ctx.stroke();
     ctx.fillStyle = 'rgba(255,255,255,.55)'; ell(-8, -24, 3, 2);
+  } else if (e.kind === 'frog') {
+    const crouch = !e.air && e.wait < 12 ? .18 : 0, stretch = e.air ? (e.vy < 0 ? .15 : -.05) : 0;
+    ctx.scale(1 + crouch - stretch * .5, 1 - crouch + stretch);
+    ctx.fillStyle = '#6FC7A3';
+    if (e.air) { ctx.save(); ctx.translate(-10, -4); ctx.rotate(.6); ell(0, 0, 10, 3.5); ctx.restore(); }
+    else ell(-10, -3, 8, 4.5);
+    ell(0, -10, 15, 10.5, '#8FDDBE');
+    ell(4, -6, 9, 5.5, '#DDF7EA');
+    ell(3, -18, 5.5, 5.5, '#8FDDBE'); ell(12, -17, 5.5, 5.5, '#8FDDBE');
+    ell(4, -18.5, 3.4, 3.4, '#FFFFFF'); ell(13, -17.5, 3.4, 3.4, '#FFFFFF');
+    ell(5, -18.5, 1.8, 2.1, '#2E3A2E'); ell(14, -17.5, 1.8, 2.1, '#2E3A2E');
+    ctx.fillStyle = 'rgba(255,120,150,.6)'; ell(1, -10, 2.8, 1.7); ell(13, -10, 2.4, 1.5);
+    ctx.strokeStyle = '#3E5A48'; ctx.lineWidth = 1.5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(8, -11, 3, .15 * Math.PI, .85 * Math.PI); ctx.stroke();
+    ctx.fillStyle = '#6FC7A3'; ell(9, -1, 4, 2.2);
   } else {
     const flap = Math.sin(e.t * .9) * .5 + .5;
     ctx.fillStyle = 'rgba(255,255,255,.85)'; ell(-4, -26, 7, 10 * (.4 + flap * .6)); ell(4, -27, 6, 9 * (.4 + flap * .6));
@@ -1709,13 +1872,102 @@ function drawCapy(x, y, o) {
   } else { ell(18, -29 + hy, 3.2, 3.5, '#2E1C14'); ell(19.2, -30.4 + hy, 1.2, 1.2, '#FFFFFF'); }
   ctx.fillStyle = 'rgba(255,120,145,.55)'; ell(19, -21 + hy, 5, 2.8);
   ctx.strokeStyle = '#5B3A29'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(28, -22 + hy, 2, .2, Math.PI * .8); ctx.stroke();
-  if (o.towel) { rr(4, -47 + hy, 24, 9, 4, '#FFFFFF'); ctx.fillStyle = '#FFC7D5'; rr(6, -45 + hy, 20, 2.5, 1.2); }
+  const hat = o.towel ? 'towel' : o.hat || 'none';
+  const lift2 = drawHat(hat, hy);
   const n = Math.min(o.yuzu || 0, 6);
   for (let i = 0; i < n; i++) {
     const sway = Math.sin(tick * .08 - i * .6) * i * .9 * (o.still ? .3 : 1);
-    drawYuzuAt(15 + sway, -46 + hy - i * 11, 6.2, 0);
+    drawYuzuAt(15 + sway, -46 + hy - lift2 - i * 11, 6.2, 0);
   }
   ctx.restore();
+}
+// Draws a hat on capy's head (local coords, facing right) and returns how much taller it makes the head.
+function drawHat(kind, hy) {
+  switch (kind) {
+    case 'towel': rr(4, -47 + hy, 24, 9, 4, '#FFFFFF'); ctx.fillStyle = '#FFC7D5'; rr(6, -45 + hy, 20, 2.5, 1.2); return 6;
+    case 'leaf':
+      ctx.strokeStyle = '#6B8E3A'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(18, -39 + hy); ctx.quadraticCurveTo(17, -45 + hy, 19, -49 + hy); ctx.stroke();
+      ctx.fillStyle = '#7ED36F'; ctx.save(); ctx.translate(19, -48 + hy); ctx.rotate(-.7); ell(-7, 0, 8, 3.6); ctx.restore();
+      ctx.fillStyle = '#9BE38A'; ctx.save(); ctx.translate(19, -49 + hy); ctx.rotate(.5); ell(7, 0, 8, 3.6); ctx.restore();
+      return 10;
+    case 'bow':
+      ctx.fillStyle = '#FF7FB0';
+      ctx.beginPath(); ctx.moveTo(14, -42 + hy); ctx.lineTo(3, -49 + hy); ctx.lineTo(4, -36 + hy); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(14, -42 + hy); ctx.lineTo(25, -49 + hy); ctx.lineTo(24, -36 + hy); ctx.closePath(); ctx.fill();
+      ell(14, -42 + hy, 3.6, 3.6, '#FF9EC6'); ell(7, -45 + hy, 1.8, 1.2, 'rgba(255,255,255,.7)');
+      return 5;
+    case 'shroom':
+      ctx.globalAlpha *= .35; ell(18, -42 + hy, 19, 13, '#D596FF'); ctx.globalAlpha /= .35;
+      ctx.fillStyle = '#D596FF'; ctx.beginPath(); ctx.ellipse(18, -38 + hy, 16, 12, 0, Math.PI, 0); ctx.closePath(); ctx.fill();
+      ell(11, -43 + hy, 3, 2.5, 'rgba(255,255,255,.85)'); ell(20, -47 + hy, 3.4, 2.6, 'rgba(255,255,255,.85)'); ell(27, -41 + hy, 2.2, 2, 'rgba(255,255,255,.85)');
+      return 10;
+    case 'crown':
+      ctx.fillStyle = '#FFD34D'; ctx.beginPath();
+      ctx.moveTo(7, -39 + hy); ctx.lineTo(8, -52 + hy); ctx.lineTo(13, -45 + hy); ctx.lineTo(18, -55 + hy); ctx.lineTo(23, -45 + hy); ctx.lineTo(28, -52 + hy); ctx.lineTo(29, -39 + hy); ctx.closePath(); ctx.fill();
+      ell(18, -44 + hy, 2.4, 2.4, '#FF6F8E'); ell(10, -41 + hy, 1.4, 1.4, '#9EDBFF'); ell(26, -41 + hy, 1.4, 1.4, '#9EDBFF');
+      return 13;
+  }
+  return 0;
+}
+function drawDuck() {
+  const d = lvl.duck; if (!d || d.got || d.x < cam.x - 60 || d.x > cam.x + VW + 60) return;
+  const x = d.x, y = d.y + Math.sin(tick * .07) * 4, tilt = Math.sin(tick * .05) * .12;
+  ctx.globalAlpha = (.3 + .15 * Math.sin(tick * .1)) * (d.had ? .6 : 1); ell(x, y, 28, 28, '#FFF3A8'); ctx.globalAlpha = d.had ? .6 : 1;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(tilt);
+  const g = ctx.createRadialGradient(-5, -6, 2, 0, 0, 20); g.addColorStop(0, '#FFF0A0'); g.addColorStop(1, '#F5B414');
+  ctx.fillStyle = g;
+  ell(-2, 5, 15, 10); ell(6, -7, 9, 9);
+  ctx.beginPath(); ctx.moveTo(-15, 2); ctx.lineTo(-20, -5); ctx.lineTo(-10, 0); ctx.fill();
+  ctx.fillStyle = '#FF9F43'; ctx.beginPath(); ctx.ellipse(16, -5, 6, 2.8, .1, 0, Math.PI * 2); ctx.fill();
+  ell(8, -9, 1.9, 2.2, '#3E2A22'); ell(8.6, -9.8, .7, .7, '#FFFFFF');
+  ctx.fillStyle = 'rgba(255,120,150,.55)'; ell(10, -4, 2.5, 1.5);
+  ctx.fillStyle = '#E8A30C'; ctx.save(); ctx.translate(-3, 4); ctx.rotate(-.3); ell(0, 0, 7, 4); ctx.restore();
+  ell(2, -12, 3, 1.8, 'rgba(255,255,255,.75)');
+  ctx.restore();
+  ctx.globalAlpha = 1;
+  if (tick % 70 < 10) star(x + 14, y - 16, 5, '#FFFFFF');
+}
+function drawTurtle(x, y, o) {
+  const walk = o.walk || 0, hide = o.hide, sleep = o.sleep, swim = o.swim;
+  ctx.save(); ctx.translate(x, y); ctx.scale(o.dir || 1, 1);
+  if (!o.noShadow) ell(0, 1, 17, 3, 'rgba(80,40,30,.15)');
+  const lp = Math.sin(walk) * 2.5;
+  ctx.fillStyle = '#8FCB86';
+  if (!hide) {
+    if (swim) {
+      const f = Math.sin(tick * .2) * .5;
+      for (const [lx, a] of [[-10, .5 + f], [9, -.5 - f]]) { ctx.save(); ctx.translate(lx, -5); ctx.rotate(a); ell(0, 3, 3.5, 7); ctx.restore(); }
+    } else {
+      const up = o.air ? 2 : 0;
+      rr(-13 + lp, -7 - up, 6, 7, 3); rr(-4 - lp, -7, 6, 7, 3); rr(4 + lp, -7, 6, 7, 3); rr(10 - lp, -7 - up, 6, 7, 3);
+    }
+    ctx.beginPath(); ctx.moveTo(-15, -7); ctx.lineTo(-21, -4); ctx.lineTo(-15, -3); ctx.fill();
+    const hy = sleep ? 2 : 0;
+    ell(17, -9 + hy, 7.5, 6.5, '#9BD68F');
+    ctx.strokeStyle = '#2E3A2E'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+    if (sleep || o.happy) { ctx.beginPath(); ctx.arc(19, -11 + hy, 1.8, sleep ? .1 * Math.PI : 1.15 * Math.PI, sleep ? .9 * Math.PI : 1.85 * Math.PI); ctx.stroke(); }
+    else { ell(19, -11 + hy, 1.7, 2, '#2E3A2E'); ell(19.5, -11.7 + hy, .6, .6, '#FFFFFF'); }
+    ctx.fillStyle = 'rgba(255,120,150,.55)'; ell(19.5, -6.5 + hy, 2.2, 1.3);
+    ctx.beginPath(); ctx.arc(22, -8 + hy, 1.5, .2, Math.PI * .8); ctx.stroke();
+  }
+  const sy = hide ? 4 : 0;
+  ctx.fillStyle = '#6DB36F'; ctx.beginPath(); ctx.ellipse(0, -7 + sy, 16, 13, 0, Math.PI, 0); ctx.closePath(); ctx.fill();
+  ell(0, -13 + sy, 5, 4, '#8CCB7E'); ell(-9, -10 + sy, 3.8, 3, '#8CCB7E'); ell(9, -10 + sy, 3.8, 3, '#8CCB7E');
+  ell(-6, -16 + sy, 4, 2, 'rgba(255,255,255,.4)');
+  rr(-17, -9 + sy, 34, 5, 2.5, '#F3D9A4');
+  drawYuzuAt(2, -24 + sy, 5, 0);
+  ctx.restore();
+  if (hide) { ctx.font = `14px ${FONT_D}`; ctx.textAlign = 'center'; ctx.fillStyle = '#3E8F5A'; ctx.fillText('eep!', x, y - 30); ctx.textAlign = 'left'; }
+  if (sleep) { const z = (tick * .4) % 50; ctx.globalAlpha = 1 - z / 50; ctx.font = `13px ${FONT_D}`; ctx.fillStyle = '#8A6450'; ctx.fillText('z', x + 12 + z * .3, y - 26 - z * .5); ctx.globalAlpha = 1; }
+}
+function drawBuddy() {
+  if (!buddyOn()) return;
+  const clear = state === 'clear' || state === 'clearMenu';
+  drawTurtle(buddy.x, buddy.y + buddy.hop, {
+    dir: buddy.dir, walk: buddy.walk, hide: buddy.hide > 0, sleep: !clear && buddy.idle > 300, swim: buddy.swim,
+    air: buddy.air || buddy.hop < 0, happy: clear || buddy.hop < 0, noShadow: buddy.air || buddy.swim || buddy.hop < 0 || clear
+  });
 }
 function drawPlayer() {
   if (P.inv > 0 && state === 'play' && Math.floor(P.inv / 5) % 2 === 0) return;
@@ -1729,7 +1981,7 @@ function drawPlayer() {
   if (P.dashT > 0) sq = .14; else if (P.pound === -1) sq = -.18;
   drawCapy(px, py + (P.sit ? 0 : 1), {
     dir: P.dir, sq, walk: P.walk, yuzu: Math.ceil(yuzuGot / 3), blink: P.blink > 0, air: !P.ground && !inW,
-    sit: P.sit || inW, happy: P.sit || state === 'clear' || star, noShadow: !P.ground
+    sit: P.sit || inW, happy: P.sit || state === 'clear' || star, noShadow: !P.ground, hat: wornHat()
   });
   ctx.filter = 'none';
   if (P.pound > 0) { ctx.font = `22px ${FONT_D}`; ctx.textAlign = 'center'; ctx.fillStyle = '#E0457B'; ctx.fillText('!', px, P.y - 34); ctx.textAlign = 'left'; }
@@ -1935,7 +2187,8 @@ function drawHUD() {
   const RX = VW - 14 - (APP ? 50 : 0);
   const n = endless() ? 1 : maxHearts();
   const heartsW = n * 26 + (endless() ? 22 : 0);
-  const pillW = 122 + heartsW;
+  const duckHud = lvl.duck && lvl.duck.got;
+  const pillW = 122 + heartsW + (duckHud ? 30 : 0);
   ctx.fillStyle = 'rgba(255,248,238,.92)'; rr(14, 14, pillW, 44, 22);
   ctx.strokeStyle = '#F7C6D3'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(14, 14, pillW, 44, 22); ctx.stroke();
   for (let i = 0; i < n; i++) heart(40 + i * 26, 25, 20, endless() || i < P.hearts ? '#FF6F8E' : '#F3D3DB');
@@ -1945,6 +2198,12 @@ function drawHUD() {
   drawYuzuAt(yx, 36, 10, 0);
   ctx.fillStyle = '#5B3A29';
   ctx.fillText(`${yuzuGot}/${lvl.total}`, yx + 18, 37);
+  if (duckHud) {
+    const dx = 14 + pillW - 22;
+    ell(dx - 1, 40, 8, 5.5, '#FFC933'); ell(dx + 3, 33, 5, 5, '#FFC933');
+    ctx.fillStyle = '#FF9F43'; ctx.beginPath(); ctx.ellipse(dx + 9, 34, 3.2, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+    ell(dx + 4, 32, 1.1, 1.2, '#3E2A22'); ctx.fillStyle = '#5B3A29';
+  }
   if (settings.timer) {
     const s = frames / 60, txt = Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') + '.' + Math.floor((s % 1) * 10);
     ctx.font = `16px ${FONT_D}`; const tw = ctx.measureText(txt).width + 30;
@@ -1990,7 +2249,8 @@ function drawTitleScene() {
   rr(-5, VH - 75, VW + 10, 17, 9, th.grass);
   ctx.fillStyle = th.grass; for (let i = 0; i < VW / 14 + 2; i++) ell(i * 14 - (cam.x % 14), VH - 64, 6.5, 4 + hash(i + Math.floor(cam.x / 14)) * 5);
   for (let i = 0; i < 16; i++) { const x = ((hash(i) * 1400 - cam.x) % 1400 + 1400) % 1400 - 200; drawDecor('flower', x, VH - 76, hash(i + 3) * .38, i); }
-  drawCapy(VW / 2 + 250, VH - 74, { dir: 1, walk: tick * .25, yuzu: 3 + Math.floor((tick / 120) % 4), blink: tick % 200 < 8, still: true });
+  if (buddyOn()) drawTurtle(VW / 2 + 196, VH - 74, { dir: 1, walk: tick * .3 });
+  drawCapy(VW / 2 + 250, VH - 74, { dir: 1, walk: tick * .25, yuzu: 3 + Math.floor((tick / 120) % 4), blink: tick % 200 < 8, still: true, hat: wornHat() });
   drawAmbient();
 }
 
@@ -2011,8 +2271,10 @@ function render() {
   drawYuzu();
   drawPowers();
   drawOrbs();
+  drawDuck();
   drawEnemies();
   drawBoss();
+  drawBuddy();
   drawPlayer();
   drawGoal(true);
   drawWater();
@@ -2050,17 +2312,18 @@ document.addEventListener('visibilitychange', () => {
   else if (actx && state !== 'pause' && $('settings').hidden) actx.resume();
 });
 // Lets the app swap in a downloaded update without interrupting a level.
-window.capyIdle = () => state === 'title' && $('settings').hidden && $('levels').hidden;
+window.capyIdle = () => state === 'title' && $('settings').hidden && $('levels').hidden && $('wardrobe').hidden;
 // Android back button (called by the app wrapper): returns false when there is nothing left to go back from.
 window.capyBack = () => {
   if (!$('settings').hidden) { closeSettings(); return true; }
   if (state === 'play') { setPause(true); return true; }
   if (state === 'pause') { setPause(false); return true; }
-  if (!$('levels').hidden) { showOv('title'); return true; }
+  if (!$('levels').hidden || !$('wardrobe').hidden) { showOv('title'); return true; }
   if (state === 'clearMenu' || state === 'final') { if (actx) actx.resume(); showTitle(); return true; }
   return false;
 };
 })();
 </script>
+
 
 </body></html>
