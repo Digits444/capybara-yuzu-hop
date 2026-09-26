@@ -3,7 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>[hidden]{display:none!important} html,body{margin:0} img{max-width:100%}</style>
-<script>window.CAPY_APP = true; window.CAPY_VERSION = 202609260239;</script>
+<script>window.CAPY_APP = true; window.CAPY_VERSION = 202609260257;</script>
 </head><body><title>Capybara Yuzu Hop</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -110,6 +110,13 @@
   .hint button{font-size:12px; padding:5px 12px; box-shadow:0 3px 0 #F2C3D0; background:#fff}
   @media (max-width:560px){ .hint{font-size:11px; gap:8px} }
   #hintKeys{display:contents}
+  /* title card sits on the right so capy's home shows on the left */
+  #title{align-items:flex-end; padding-right:3cqw}
+  #title .card{max-width:44cqw; box-sizing:border-box; padding:3cqh 2.6cqw; gap:1.4cqh; background:rgba(255,248,238,.94)}
+  #title h1{font-size:5.2cqw}
+  #title .tag{font-size:1.65cqw}
+  #title .row{gap:1cqw}
+  #title button{font-size:1.9cqw; padding:1.2cqh 2.2cqw}
   .hats{display:grid; grid-template-columns:repeat(6,1fr); gap:1.4cqw; width:88cqw}
   .hat{font-family:var(--body); font-weight:800; font-size:1.35cqw; background:#fff; color:var(--cocoa);
     border-radius:2.4cqw; padding:0 0 1.2cqh; box-shadow:0 .8cqh 0 #F2C3D0; display:flex; flex-direction:column;
@@ -157,6 +164,7 @@
       <div class="row">
         <button id="btnPlay">Play ♪</button>
         <button id="btnLevels" class="alt">Choose level</button>
+        <button id="btnTower" class="alt">Tree climb</button>
         <button id="btnWardrobe" class="alt">Wardrobe</button>
         <button id="btnSettings" class="alt">Settings</button>
       </div>
@@ -230,7 +238,7 @@
           <p class="small" id="bindNote">Click a key to change it. Arrow keys and Space always work too.</p>
         </div>
       </div>
-      <div class="row" id="setBtns"><button id="btnSetDone" type="button">Done</button><button id="btnSetDefaults" class="alt" type="button">Reset settings</button><button id="btnResetProg" class="alt" type="button">Erase progress</button></div>
+      <div class="row" id="setBtns"><button id="btnSetDone" type="button">Done</button><button id="btnSetHome" class="alt" type="button">Home screen</button><button id="btnSetDefaults" class="alt" type="button">Reset settings</button><button id="btnResetProg" class="alt" type="button">Erase progress</button></div>
       <div class="row" id="confirmRow" hidden><span class="small">Erase your best yuzu for every level?</span><button id="btnEraseYes" type="button">Erase</button><button id="btnEraseNo" class="alt" type="button">Keep it</button></div>
     </div>
   </div>
@@ -242,8 +250,8 @@
       <div class="stats">
         <div><b id="stYuzu">0/0</b>yuzu</div>
         <div><b id="stTime">0:00</b>time</div>
-        <div><b id="stBonk">0</b>bonks</div>
-        <div><b id="stDuck">-</b>golden duck</div>
+        <div><b id="stBonk">0</b><span id="lbBonk">bonks</span></div>
+        <div><b id="stDuck">-</b><span id="lbDuck">golden duck</span></div>
       </div>
       <div class="row"><button id="btnNext">Next level</button><button id="btnReplay" class="alt">Replay</button></div>
     </div>
@@ -279,6 +287,7 @@
 (() => {
 'use strict';
 let VW = 960; const VH = 540, T = 36;
+let WH = VH;   // world height: one screen for normal levels, much taller for the tree climb
 const cv = document.getElementById('game');
 let ctx = cv.getContext('2d');
 const wrap = document.getElementById('wrap');
@@ -344,8 +353,10 @@ const THEMES = {
   onsen: { sky: ['#FFB997', '#FFF0D2'], celestial: 'sunset', far: 'mountains', farC: '#EFB2C6', near: '#B5D79E', grass: '#9BD48A', grassD: '#74B96B', dirt: '#B99478', dirtD: '#9F7B62', dot: '#D5B59A', plat: 'bamboo', decor: 'rock', ambient: 'steam', water: '#7FD8D2', waterTop: '#C4F4EF', spike: '#A7C97A', shell: '#FFC59E', clouds: '#FFF6EE', bamboo: true },
   clouds: { sky: ['#B9A6FF', '#FFD3EA'], celestial: 'rainbow', far: 'cloudbank', farC: '#FFFFFF', near: '#FFE9F5', grass: '#FFFFFF', grassD: '#F1D9F0', dirt: '#FFC4DE', dirtD: '#F7AFCF', dot: '#FFE3F0', plat: 'cloud', decor: 'star', ambient: 'sparkle', spike: '#B99BF0', shell: '#A9E4FF', clouds: '#FFFFFF' },
   night: { sky: ['#241F57', '#6A4A9C'], celestial: 'moon', stars: true, far: 'shrooms', farC: '#3B3677', near: '#463F86', grass: '#74D6B6', grassD: '#4FAA92', dirt: '#58487E', dirtD: '#4A3C6D', dot: '#8C79C2', plat: 'shroom', decor: 'glowshroom', ambient: 'firefly', spike: '#C79AF0', shell: '#8EF0D2', dark: true },
-  candy: { sky: ['#2A3170', '#F5A7CB'], celestial: 'moon', stars: true, far: 'castle', farC: '#B58BD9', near: '#F3B6D6', grass: '#FFF1F7', grassD: '#FF9EC6', dirt: '#9B5E45', dirtD: '#834D38', dot: '#FFFFFF', plat: 'candy', decor: 'lolly', ambient: 'twinkle', water: '#FF9ACB', waterTop: '#FFD0E6', spike: '#FF7FB0', shell: '#FFE08A', sprinkles: true, dark: true }
+  candy: { sky: ['#2A3170', '#F5A7CB'], celestial: 'moon', stars: true, far: 'castle', farC: '#B58BD9', near: '#F3B6D6', grass: '#FFF1F7', grassD: '#FF9EC6', dirt: '#9B5E45', dirtD: '#834D38', dot: '#FFFFFF', plat: 'candy', decor: 'lolly', ambient: 'twinkle', water: '#FF9ACB', waterTop: '#FFD0E6', spike: '#FF7FB0', shell: '#FFE08A', sprinkles: true, dark: true },
+  tree: { sky: ['#9EDFFF', '#E8F7FF'], celestial: 'none', far: 'none', farC: '#C3ECC4', near: '#A2DCA5', grass: '#86D27E', grassD: '#63B96A', dirt: '#9C6B45', dirtD: '#83573A', dot: '#B98457', plat: 'branch', decor: 'flower', ambient: 'petal', spike: '#9ACB78', shell: '#FFB3C7', clouds: '#FFFFFF', butterflies: true }
 };
+THEMES.meadow.butterflies = THEMES.onsen.butterflies = THEMES.clouds.butterflies = true;
 
 /* ---------------- levels ----------------
    ground: "height:count" runs (0 = pit). y values are tiles above the bottom; null = ground height.
@@ -398,6 +409,70 @@ const LEVELS = [
       ['o', 113, 7, 3], ['o', 116, 5, 2], ['*', 118, 7, 'shield'], ['m', 120, 5, 2, 2], ['o', 120, 7, 2],
       ['C', 126], ['X', 145], ['o', 153, 5, 3], ['G', 158]] }
 ];
+const MAIN_LEVELS = 5;          // the five bath levels; the tree climb comes after them in LEVELS
+const TOWER = 5;
+
+/* The Great Yuzu Tree: a tall climb built from a fixed seed, so it is the same climb every time and can be learned.
+   Six sections of about 20 tiles, each harder than the last, with a checkpoint platform between them.
+   Reach rules: a single hop clears 2 tiles up, a double hop about 5; sideways gaps stay at 3 tiles or less. */
+function genTower() {
+  let seed = 20260926;
+  const rnd = () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const pick = a => a[Math.floor(rnd() * a.length)];
+  const W = 22, SECTION = 20, SECTIONS = 6;
+  const objs = [['P', 3], ['o', 6, 1, 3]];
+  let cur = { x: 1, y: 1, w: 8 }, dir = 1, bigNext = false;
+  const place = (kind, w, dy, gap, range) => {
+    let nx = dir > 0 ? cur.x + cur.w + gap : cur.x - gap - w - range;
+    if (nx < 1 || nx + w + range > W - 1) { dir = -dir; nx = dir > 0 ? cur.x + cur.w + gap : cur.x - gap - w - range; }
+    nx = clamp(nx, 1, W - 1 - w - range);
+    return { x: nx, y: cur.y + dy };
+  };
+  for (let s = 0; s < SECTIONS; s++) {
+    const d = s / (SECTIONS - 1), top = 1 + (s + 1) * SECTION;
+    while (cur.y < top - 5) {
+      const r = rnd();
+      let kind = 'p';
+      if (s >= 1 && r < .16 + d * .2) kind = 'c';
+      else if (s >= 2 && r < .32 + d * .2) kind = 'm';
+      else if (s >= 3 && r < .42 + d * .12) kind = 'v';
+      const range = kind === 'm' ? 3 : kind === 'v' ? 4 : 0;
+      const w = kind === 'm' || kind === 'v' ? 2 : pick(s === 0 ? [3, 4] : s < 3 ? [2, 3, 3] : [1, 2, 2]);
+      const dy = bigNext ? 6 : kind === 'v' ? 2 : pick(s === 0 ? [2, 2, 3] : s < 3 ? [2, 3, 3, 4] : [3, 4, 4]);
+      const gap = pick(s === 0 ? [0, 1, 2] : s < 3 ? [1, 2, 3] : [2, 3, 3]);
+      bigNext = false;
+      const at = place(kind, w, dy, gap, kind === 'm' ? range : 0);
+      if (kind === 'p') objs.push(['p', at.x, at.y, w]);
+      else if (kind === 'c') objs.push(['c', at.x, at.y, w]);
+      else objs.push([kind, at.x, at.y, w, range]);
+      // a yuzu or two to grab on the way
+      if (rnd() < .55) objs.push(['o', at.x, at.y + (kind === 'v' ? range : 0), Math.min(w, 2)]);
+      // bees drift across the gaps in the later sections
+      if (s >= 1 && rnd() < .18 + d * .42) objs.push(['b', Math.round((cur.x + at.x) / 2) + 1, cur.y + dy / 2 + 1.5]);
+      // a burr on the far end of wider branches
+      if (kind === 'p' && w >= 3 && s >= 2 && rnd() < .55) objs.push(['^', dir > 0 ? at.x + w - 1 : at.x, at.y, 1]);
+      // now and then a bouncy mushroom for a big leap
+      if (kind === 'p' && w >= 2 && s >= 1 && rnd() < .14) { objs.push(['B', dir > 0 ? at.x : at.x + w - 1, at.y]); bigNext = true; }
+      cur = kind === 'm' ? { x: dir > 0 ? at.x + range : at.x, y: at.y, w }
+          : kind === 'v' ? { x: at.x, y: at.y + range, w } : { x: at.x, y: at.y, w };
+    }
+    // checkpoint branch between sections
+    const at = place('p', 4, 2, 1, 0);
+    objs.push(['p', at.x, at.y, 4]);
+    if (s < SECTIONS - 1) objs.push(['C', at.x + 1, at.y]);
+    if (s === 1 || s === 3) objs.push(['*', at.x + 2, at.y + 2, 'shield']);
+    if (s === 2 || s === 4) objs.push(['*', at.x + 2, at.y + 2, 'cake']);
+    cur = { x: at.x, y: at.y, w: 4 };
+  }
+  // the treehouse bath on a wide branch across the whole crown
+  const goalY = cur.y + 3;
+  objs.push(['p', 1, goalY, W - 2], ['G', 10, goalY], ['o', 3, goalY, 3], ['o', 16, goalY, 3]);
+  return { objs, rows: goalY + 9, ground: '1:' + W };
+}
+const TOWER_DEF = genTower();
+LEVELS.push({ name: 'The Great Yuzu Tree', mode: 'tower', theme: 'tree', song: 'tree', rows: TOWER_DEF.rows,
+  line: 'Climb all the way to the treehouse bath at the very top. Falls are long, so hop carefully!',
+  ground: TOWER_DEF.ground, objs: TOWER_DEF.objs });
 
 /* ---------------- settings ---------------- */
 const DEFAULTS = { master: 80, music: 70, sfx: 80, hearts: 3, speed: 1, timer: 0, buddy: 1, effects: 'full', touch: 'auto',
@@ -498,7 +573,10 @@ const SONGS = {
     lead1: 'chip', bass: 'bounce', arp: 'up', arpI: 'chipArp', drums: 'khskkhsh', delay: .15 },
   boss: { bpm: 152, bar: 8, chords: ['Am', 'F', 'G', 'E', 'Am', 'F', 'Dm', 'E'],
     lead: 'A5 C6 E6 A5 C6 E6 D6 C6 | F5 A5 C6 F6.2 E6 D6 C6 | G5 B5 D6 G6.2 F6 E6 D6 | E6.2 B5 G#5 E5.2 G#5 B5 | A5 A5 E6.2 A5 A5 F6.2 | E6 D6 C6 A5 F5.2 A5.2 | D6 F6 A6.2 G6 F6 E6 D6 | E6.4 G#5.2 B5.2',
-    lead1: 'chip', bass: 'bounce', arp: 'up', arpI: 'chipArp', drums: 'kshkkshs', delay: .1 }
+    lead1: 'chip', bass: 'bounce', arp: 'up', arpI: 'chipArp', drums: 'kshkkshs', delay: .1 },
+  tree: { bpm: 132, bar: 8, chords: ['E', 'B', 'C#m', 'A', 'E', 'B', 'A', 'B'],
+    lead: 'E5 G#5 B5 E6.2 B5 G#5 B5 | D#6.2 C#6 B5 F#5.2 D#5 F#5 | C#6 E6 G#6.2 E6 C#6 G#5 C#6 | A5.2 C#6.2 E6.3 C#6 | B5 B5 E6.2 D#6 C#6 B5 G#5 | F#5.2 B5 D#6 F#6.2 D#6 B5 | C#6 B5 A5 G#5 F#5 E5 F#5 G#5 | B5.4 F#5.2 D#5.2',
+    lead1: 'flute', bass: 'bounce', arp: 'up', arpI: 'bell', drums: 'k-hsk-hs', delay: .15 }
 };
 for (const k in SONGS) { const s = SONGS[k]; s.p = parseLine(s.lead); s.ch = s.chords.map(chord); }
 
@@ -598,7 +676,8 @@ const sfx = {
 
 /* ---------------- state ---------------- */
 let state = 'title', lvl = null, levelIndex = 0, tick = 0;
-const cam = { x: 0 };
+const cam = { x: 0, y: 0 };
+let flutters = [];   // butterflies drifting across daytime scenes (screen space)
 const P = { x: 0, y: 0, w: 34, h: 28, vx: 0, vy: 0, dir: 1, ground: false, onPlat: null, coyote: 0, buffer: 0, inv: 0, hearts: 3, walk: 0, sq: 0, inWater: false, drop: 0, blink: 0, sit: false };
 let respawn = { x: 0, y: 0 }, parts = [], ambient = [], yuzuGot = 0, bonks = 0, frames = 0, clearT = 0;
 /* Kame the turtle buddy: walks along capy's recent path a little way behind, and can't be hurt */
@@ -680,24 +759,26 @@ function showCard(eyebrow, name, line, ms) {
 
 function loadLevel(i) {
   const L = LEVELS[i]; const gh = parseGround(L.ground); const W = gh.length;
+  WH = (L.rows || VH / T) * T;
   const g = c => gh[clamp(c, 0, W - 1)];
   lvl = { i, def: L, th: THEMES[L.theme], gh, W, plats: [], yuzu: [], enemies: [], spikes: [], spikeCols: new Set(), shrooms: [], checks: [], goal: null, runs: [],
     orbs: [], powers: [], blocks: [], boss: null, arena: null, waves: [], duck: null,
-    water: (L.water || []).map(([a, b, s]) => ({ x0: a * T, x1: b * T, y: VH - s * T })) };
-  let start = { x: 2 * T, y: VH - g(2) * T - P.h };
+    water: (L.water || []).map(([a, b, s]) => ({ x0: a * T, x1: b * T, y: WH - s * T })) };
+  let start = { x: 2 * T, y: WH - g(2) * T - P.h };
   for (const o of L.objs) {
     const [k, x, yy, n = 1, r = 0] = o;
-    const y = yy == null ? g(x) : yy, surf = VH - y * T;
+    const y = yy == null ? g(x) : yy, surf = WH - y * T;
     switch (k) {
       case 'P': start = { x: x * T + 2, y: surf - P.h }; break;
       case 'o': for (let j = 0; j < n; j++) lvl.yuzu.push({ x: (x + j) * T + T / 2, y: surf - T / 2, got: false, ph: hash(x * 7 + j) * 6 }); break;
       case 'p': lvl.plats.push({ x: x * T, y: surf, w: n * T, dx: 0, dy: 0, kind: 's' }); break;
+      case 'c': lvl.plats.push({ x: x * T, y: surf, w: n * T, by: surf, dx: 0, dy: 0, kind: 'c', t: 0, fall: 0, gone: 0 }); break;
       case 'm': case 'v': lvl.plats.push({ x: x * T, y: surf, w: n * T, bx: x * T, by: surf, range: r * T, kind: k, t: 0, dx: 0, dy: 0 }); break;
       case 's': lvl.enemies.push({ kind: 'snail', x: x * T + 3, y: surf - 22, w: 30, h: 22, dir: -1, h0: y, alive: true, t: hash(x) * 100 }); break;
       case 'f': lvl.enemies.push({ kind: 'frog', x: x * T + 3, y: surf - 24, w: 30, h: 24, dir: -1, h0: y, alive: true, t: hash(x) * 100, vx: 0, vy: 0, air: false, wait: 50 + hash(x + 1) * 60 }); break;
       case 'D': lvl.duck = { x: x * T + T / 2, y: surf - T / 2, got: false, had: !!save.ducks[i] }; break;
       case 'b': lvl.enemies.push({ kind: 'bee', bx: x * T + T / 2, by: surf - T / 2, x: 0, y: 0, w: 28, h: 24, alive: true, t: hash(x) * 200, dir: 1 }); break;
-      case '^': for (let j = 0; j < n; j++) { const c = x + j, sy = VH - g(c) * T; lvl.spikes.push({ x: c * T + 5, y: sy - 18, w: T - 10, h: 18, cx: c * T + T / 2, base: sy }); lvl.spikeCols.add(c); } break;
+      case '^': for (let j = 0; j < n; j++) { const c = x + j, sy = yy == null ? WH - g(c) * T : surf; lvl.spikes.push({ x: c * T + 5, y: sy - 18, w: T - 10, h: 18, cx: c * T + T / 2, base: sy }); lvl.spikeCols.add(c); } break;
       case 'B': lvl.shrooms.push({ x: x * T + T / 2, top: surf - 26, base: surf, sq: 0 }); break;
       case 'C': lvl.checks.push({ x: x * T + T / 2, y: surf, on: false, t: 0 }); break;
       case 'G': lvl.goal = { x: x * T + T, y: surf }; break;
@@ -720,8 +801,10 @@ function loadLevel(i) {
   respawn = { ...start };
   resetBuddy(start.x + P.w / 2, start.y + P.h, 1);
   parts = []; yuzuGot = 0; bonks = 0; frames = 0; clearT = 0;
-  cam.x = clamp(P.x - VW * .35, 0, W * T - VW);
-  ambient = [];
+  lvl.falls = 0;
+  cam.x = W * T <= VW ? (W * T - VW) / 2 : clamp(P.x - VW * .35, 0, W * T - VW);
+  cam.y = clamp(P.y + P.h / 2 - VH * .55, 0, WH - VH);
+  ambient = []; flutters = [];
 }
 
 /* ---------------- input ---------------- */
@@ -928,6 +1011,7 @@ function openSettings() {
   initAudio(); if (actx) actx.resume();
   $('confirmRow').hidden = true; $('setBtns').hidden = false;
   waitingBind = null; syncSettingsUI(); showOv('settings');
+  $('btnSetHome').hidden = settingsFrom === 'title';
   setTimeout(() => $('btnSetDone').focus(), 30);
 }
 function closeSettings() {
@@ -964,6 +1048,11 @@ $('btnFull').onclick = () => {
 };
 document.addEventListener('fullscreenchange', () => { resize(); if (!$('settings').hidden) syncSettingsUI(); });
 $('btnSetDone').onclick = closeSettings;
+$('btnSetHome').onclick = () => {
+  waitingBind = null; saveSettings(); settingsFrom = null; settingsResume = false;
+  if (actx) actx.resume();
+  sfx.click(); showTitle();
+};
 $('btnSetDefaults').onclick = () => {
   settings = JSON.parse(JSON.stringify(DEFAULTS));
   P.hearts = Math.min(P.hearts, maxHearts());
@@ -987,18 +1076,19 @@ function startLevel(i) {
   initAudio(); sfx.click();
   levelIndex = i; loadLevel(i); state = 'play'; showOv(null);
   playSong(LEVELS[i].song);
-  showCard('Level ' + (i + 1) + ' of 5', LEVELS[i].name, LEVELS[i].line, 2600);
+  if (i === TOWER) showCard('Climbing challenge', LEVELS[i].name, LEVELS[i].line, 3400);
+  else showCard('Level ' + (i + 1) + ' of 5', LEVELS[i].name, LEVELS[i].line, 2600);
   if (buddyOn() && i === 0) floatText(buddy.x, buddy.y - 34, 'Kame tags along!', '#3E8F5A');
   cv.focus && cv.focus();
 }
-function nextLevel() { if (levelIndex < LEVELS.length - 1) startLevel(levelIndex + 1); else showFinal(); }
+function nextLevel() { if (levelIndex === TOWER) startLevel(TOWER); else if (levelIndex < MAIN_LEVELS - 1) startLevel(levelIndex + 1); else showFinal(); }
 function setPause(on) {
   if (on) { state = 'pause'; showOv('pause'); if (actx) actx.suspend(); }
   else { state = 'play'; showOv(null); if (actx) actx.resume(); }
 }
 function buildLevelGrid() {
   const g = $('levelGrid'); g.innerHTML = '';
-  LEVELS.forEach((L, i) => {
+  LEVELS.slice(0, MAIN_LEVELS).forEach((L, i) => {
     const th = THEMES[L.theme];
     const b = document.createElement('button'); b.className = 'lv'; b.id = 'lv' + i;
     const best = save.best[i];
@@ -1034,6 +1124,7 @@ function buildWardrobe() {
   const n = Object.keys(save.ducks).length;
   $('wardLine').textContent = n ? `${n} of 5 golden ducks found. Pick a hat for capy!` : 'Every level hides one golden rubber duck. Each duck you find unlocks a new hat.';
 }
+$('btnTower').onclick = () => startLevel(TOWER);
 $('btnWardrobe').onclick = () => { initAudio(); sfx.click(); buildWardrobe(); showOv('wardrobe'); };
 $('btnWardBack').onclick = () => { sfx.click(); showOv('title'); };
 $('btnLevels').onclick = () => { initAudio(); sfx.click(); buildLevelGrid(); showOv('levels'); };
@@ -1045,7 +1136,8 @@ $('btnNext').onclick = nextLevel;
 $('btnReplay').onclick = () => startLevel(levelIndex);
 $('btnAgain').onclick = () => startLevel(0);
 $('btnFinalLevels').onclick = () => { buildLevelGrid(); showOv('levels'); state = 'title'; };
-const CLEAR_TITLES = ['Ahh, bath time!', 'So warm, so cozy', 'Fluffy and relaxed', 'Sweet glowing dreams', 'Royal bath achieved!'];
+const CLEAR_TITLES = ['Ahh, bath time!', 'So warm, so cozy', 'Fluffy and relaxed', 'Sweet glowing dreams', 'Royal bath achieved!', 'Top of the tree!'];
+const fmtTime = f => { const s = f / 60; return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') + '.' + Math.floor((s % 1) * 10); };
 function showClearMenu() {
   state = 'clearMenu';
   const prev = save.best[levelIndex]; if (prev == null || yuzuGot > prev) { save.best[levelIndex] = yuzuGot; persist(); }
@@ -1055,21 +1147,31 @@ function showClearMenu() {
   const sec = Math.floor(frames / 60); $('stTime').textContent = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
   $('stBonk').textContent = bonks;
   $('stDuck').textContent = !lvl.duck ? '-' : lvl.duck.got ? (lvl.duck.had ? 'again!' : 'found!') : save.ducks[levelIndex] ? 'home' : '???';
-  $('btnNext').textContent = levelIndex < LEVELS.length - 1 ? 'Next level' : 'The end ♥';
+  $('lbBonk').textContent = 'bonks'; $('lbDuck').textContent = 'golden duck';
+  $('btnNext').textContent = levelIndex < MAIN_LEVELS - 1 ? 'Next level' : 'The end ♥';
+  if (levelIndex === TOWER) {
+    const best = save.tower && save.tower.best, isBest = !best || frames < best;
+    if (isBest) { save.tower = { best: frames }; persist(); }
+    $('clearNum').textContent = 'Climbing challenge · ' + lvl.def.name;
+    $('stTime').textContent = fmtTime(frames);
+    $('stBonk').textContent = lvl.falls; $('lbBonk').textContent = lvl.falls === 1 ? 'fall' : 'falls';
+    $('stDuck').textContent = isBest ? 'new!' : fmtTime(best); $('lbDuck').textContent = isBest ? 'best time' : 'best time to beat';
+    $('btnNext').textContent = 'Climb again';
+  }
   showOv('clear');
   setTimeout(() => $('btnNext').focus(), 50);
 }
 function showFinal() {
   state = 'final';
   let got = 0, tot = 0;
-  LEVELS.forEach((L, i) => { got += save.best[i] || 0; L.objs.forEach(o => { if (o[0] === 'o') tot += (o[3] || 1); }); });
+  LEVELS.slice(0, MAIN_LEVELS).forEach((L, i) => { got += save.best[i] || 0; L.objs.forEach(o => { if (o[0] === 'o') tot += (o[3] || 1); }); });
   const dn = Object.keys(save.ducks).length;
   $('finalLine').textContent = `Capy visited every bath and carried ${got} of ${tot} yuzu home` + (dn === 5 ? ', plus every golden duck!' : dn ? ` and ${dn} of 5 golden ducks.` : '.') + ' Time for a very long nap.';
   showOv('final'); playSong('title');
 }
 
 /* ---------------- world queries ---------------- */
-function colTop(c) { if (c < 0 || c >= lvl.W) return -1e9; const h = lvl.gh[c]; return h > 0 ? VH - h * T : 1e9; }
+function colTop(c) { if (c < 0 || c >= lvl.W) return -1e9; const h = lvl.gh[c]; return h > 0 ? WH - h * T : 1e9; }
 function waterAt(x, y) { for (const w of lvl.water) if (x >= w.x0 && x < w.x1 && y > w.y) return w; return null; }
 const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
@@ -1119,6 +1221,15 @@ function step() {
   // platforms
   for (const p of lvl.plats) {
     if (p.kind === 's') continue;
+    if (p.kind === 'c') {
+      // leafy branches wobble for half a second after capy lands, then drop, and grow back 3 seconds later
+      p.dy = 0;
+      if (p.gone > 0) { if (--p.gone === 0) { p.y = p.by; p.t = 0; p.fall = 0; } continue; }
+      if (p.fall > 0) { p.fall++; p.y += Math.min(12, p.fall * .45); if (p.fall > 70) p.gone = 180; continue; }
+      if (p.t > 0 || (P.ground && P.onPlat === p)) p.t++;
+      if (p.t > 32) { p.fall = 1; sfx.crate(); emit(p.x + p.w / 2, p.y + 6, 'crumb', 8, { c: '#8FCB6E', speed: 2, g: .2, size: 5, life: 40 }); }
+      continue;
+    }
     p.t++; const k = (1 - Math.cos(p.t * .014)) / 2;
     if (p.kind === 'm') { const nx = p.bx + k * p.range; p.dx = nx - p.x; p.x = nx; }
     else { const ny = p.by - k * p.range; p.dy = ny - p.y; p.y = ny; }
@@ -1133,7 +1244,7 @@ function step() {
       e.x += e.dir * .55;
       const front = Math.floor((e.dir > 0 ? e.x + e.w + 2 : e.x - 2) / T);
       if (front < 0 || front >= lvl.W || lvl.gh[front] !== e.h0 || lvl.spikeCols.has(front) ||
-          lvl.blocks.some(b => b.alive && Math.floor(b.x / T) === front && b.y + b.h === VH - e.h0 * T)) e.dir *= -1;
+          lvl.blocks.some(b => b.alive && Math.floor(b.x / T) === front && b.y + b.h === WH - e.h0 * T)) e.dir *= -1;
     } else if (e.kind === 'frog') {
       updateFrog(e);
     } else {
@@ -1148,10 +1259,19 @@ function step() {
   if (state === 'play') { frames++; if (lvl.boss) updateBoss(); updatePlayer(); if (buddyOn() && state === 'play') updateBuddy(); }
   else updateClear();
 
+  // In the tree climb, dropping well below the last checkpoint puts capy back on it.
+  if (lvl.def.mode === 'tower' && state === 'play' && P.y > respawn.y + 6 * T) {
+    lvl.falls++; sfx.fall(); doRespawn(false);
+    floatText(P.x + P.w / 2, P.y - 40, ['so close!', 'oopsie~', 'try again!', 'wheee…'][lvl.falls % 4], '#D9476E');
+  }
+
   let target = P.x + P.w / 2 - VW * .4 + P.dir * 50;
   if (lvl.arena && lvl.arena.locked) target = lvl.arena.x0 - (VW - (lvl.arena.x1 - lvl.arena.x0)) / 2;
   cam.x += (target - cam.x) * .09;
-  cam.x = clamp(cam.x, 0, lvl.W * T - VW);
+  cam.x = lvl.W * T <= VW ? (lvl.W * T - VW) / 2 : clamp(cam.x, 0, lvl.W * T - VW);
+  const ty = P.y + P.h / 2 - VH * .55;
+  cam.y += (ty - cam.y) * .12;
+  cam.y = clamp(cam.y, 0, WH - VH);
 }
 
 /* frogs sit, then hop about two tiles toward capy; they never hop into pits, burrs, crates or walls */
@@ -1159,12 +1279,12 @@ function frogPathOk(e, dir) {
   const a = dir > 0 ? e.x : e.x - 64, b = dir > 0 ? e.x + e.w + 64 : e.x + e.w;
   for (let c = Math.floor(a / T); c <= Math.floor((b - .001) / T); c++) {
     if (c < 0 || c >= lvl.W || lvl.gh[c] !== e.h0 || lvl.spikeCols.has(c)) return false;
-    if (lvl.blocks.some(k => k.alive && Math.floor(k.x / T) === c && k.y + k.h === VH - e.h0 * T)) return false;
+    if (lvl.blocks.some(k => k.alive && Math.floor(k.x / T) === c && k.y + k.h === WH - e.h0 * T)) return false;
   }
   return true;
 }
 function updateFrog(e) {
-  const floor = VH - e.h0 * T - e.h;
+  const floor = WH - e.h0 * T - e.h;
   if (!e.air) {
     if (--e.wait > 0) return;
     const dx = P.x + P.w / 2 - (e.x + e.w / 2);
@@ -1308,6 +1428,7 @@ function bossContact(box, prevB) {
 
 function updatePlayer() {
   const L = held('left'), R = held('right'), J = held('jump'), D = held('down');
+  if (P.onPlat && (P.onPlat.fall > 0 || P.onPlat.gone > 0)) { P.onPlat = null; P.ground = false; }
   if (P.ground && P.onPlat) { P.x += P.onPlat.dx; P.y = P.onPlat.y - P.h; }
   if (P.inv > 0) P.inv--;
   if (P.drop > 0) P.drop--;
@@ -1418,6 +1539,7 @@ function updatePlayer() {
     const a0 = Math.floor(P.x / T), a1 = Math.floor((P.x + P.w - .001) / T);
     for (let c = a0; c <= a1; c++) { const top = colTop(c); if (prevB <= top + .5 && P.y + P.h >= top && top < best) { best = top; plat = null; } }
     if (P.drop === 0) for (const p of lvl.plats) {
+      if (p.fall > 0 || p.gone > 0) continue;
       if (P.x + P.w > p.x + 3 && P.x < p.x + p.w - 3) {
         const prevPT = p.y - p.dy;
         if (prevB <= prevPT + 1 && P.y + P.h >= p.y && p.y < best) { best = p.y; plat = p; }
@@ -1496,9 +1618,9 @@ function updatePlayer() {
       emit(c.x, c.y - 40, 'heart', 8, { c: '#FF8FAB', up: 1, speed: 2 }); floatText(c.x, c.y - 70, 'checkpoint bloom!', '#D9476E');
     }
   }
-  if (P.y > VH + 90) { sfx.fall(); if (!endless()) P.hearts--; doRespawn(P.hearts <= 0); }
+  if (P.y > WH + 90) { sfx.fall(); if (!endless()) P.hearts--; doRespawn(P.hearts <= 0); }
   const g = lvl.goal;
-  if (g && Math.abs(pcx - g.x) < 34 && P.y + P.h > g.y - 60) {
+  if (g && Math.abs(pcx - g.x) < 34 && P.y + P.h > g.y - 60 && P.y + P.h < g.y + 12) {
     state = 'clear'; clearT = 0; stopSong(); sfx.fanfare(); P.vx = 0; P.dashT = 0; P.pound = 0; P.power = null; P.powerT = 0;
     $('card').hidden = true;
   }
@@ -1539,6 +1661,14 @@ function updateAmbient() {
     p.x += p.vx; p.y += p.vy;
   }
   ambient = ambient.filter(p => p.life < p.max && p.y < VH + 30 && p.y > -60 && p.x > -40);
+  // a butterfly or two drifts across daytime scenes now and then
+  if (th.butterflies && flutters.length < (calm() ? 1 : 3) && Math.random() < .004) {
+    const left = Math.random() < .5;
+    flutters.push({ x: left ? -20 : VW + 20, y: 110 + Math.random() * 260, vx: (left ? 1 : -1) * (.5 + Math.random() * .5), t: Math.random() * 100,
+      c: ['#FFB3C7', '#B8E4FF', '#FFE08A', '#D6C4FF'][Math.floor(Math.random() * 4)] });
+  }
+  for (const b of flutters) { b.t++; b.x += b.vx; b.y += Math.sin(b.t * .045) * .7; }
+  flutters = flutters.filter(b => b.x > -40 && b.x < VW + 40);
 }
 
 /* ---------------- drawing: background ---------------- */
@@ -1551,7 +1681,7 @@ function hills(color, base, amp, freq, par, camX, seed) {
 function cloudPuff(x, y, s, c, face) {
   ctx.fillStyle = c;
   ell(x, y, s * 1.1, s * .7); ell(x - s * .9, y + s * .2, s * .7, s * .5); ell(x + s * .9, y + s * .2, s * .75, s * .5); ell(x - s * .2, y - s * .45, s * .7, s * .6);
-  if (face) { cuteFace(x, y + s * .1, s * .16, '#6B4A5A'); }
+  if (face) cuteFace(x, y + s * .1, s * .16, '#6B4A5A', face === 'sleepy');
 }
 function cuteFace(x, y, s, c, sleepy) {
   ctx.fillStyle = c; ctx.strokeStyle = c; ctx.lineWidth = Math.max(1.5, s * .35); ctx.lineCap = 'round';
@@ -1601,7 +1731,7 @@ function drawBG(th, camX) {
     }
   } else if (th.far === 'cloudbank') {
     const off = camX * .12;
-    for (let i = -1; i < VW / 150 + 2; i++) { const b = Math.floor(off / 150) + i; cloudPuff(b * 150 - off, 420 + hash(b) * 30, 70 + hash(b + 3) * 20, 'rgba(255,255,255,.75)'); }
+    for (let i = -1; i < VW / 150 + 2; i++) { const b = Math.floor(off / 150) + i; cloudPuff(b * 150 - off, 420 + hash(b) * 30, 70 + hash(b + 3) * 20, 'rgba(255,255,255,.75)', b % 2 ? 'sleepy' : true); }
   } else if (th.far === 'shrooms') {
     const off = camX * .18;
     for (let i = -1; i < VW / 260 + 2; i++) {
@@ -1627,11 +1757,20 @@ function drawBG(th, camX) {
   if (th.clouds) {
     for (let i = 0; i < 5; i++) {
       const w = VW + 300, x = ((hash(i + 20) * w - camX * .22 - tick * .15 * (1 + i * .1)) % w + w) % w - 150;
-      cloudPuff(x, 60 + hash(i + 40) * 140, 26 + hash(i + 5) * 16, th.clouds, i % 2 === 0);
+      cloudPuff(x, 60 + hash(i + 40) * 140, 26 + hash(i + 5) * 16, th.clouds, i % 3 === 1 ? 'sleepy' : true);
     }
   }
   // near layer
   hills(th.near, 450, 26, .007, .35, camX, 4);
+  // a few bunnies sit on the near hills, spread far apart
+  {
+    const off = camX * .35;
+    for (let i = -1; i < VW / 640 + 2; i++) {
+      const b = Math.floor(off / 640) + i; if (hash(b * 3 + 17) < .45) continue;
+      const x = b * 640 - off + 120 + hash(b) * 300, wx = x + off;
+      drawBunny(x, 452 - (Math.sin(wx * .007 + 4) * 26 + Math.sin(wx * .007 * 2.3 + 8) * 26 * .35), th, b);
+    }
+  }
   if (th.bamboo) {
     const off = camX * .45;
     for (let i = -1; i < VW / 70 + 2; i++) {
@@ -1662,8 +1801,8 @@ function drawGround() {
   for (const r of lvl.runs) {
     const x = r.x0 * T, w = (r.x1 - r.x0) * T;
     if (x > x1 || x + w < x0) continue;
-    const top = VH - r.h * T;
-    rr(x, top, w, VH - top + 30, [14, 14, 0, 0], th.dirt);
+    const top = WH - r.h * T;
+    rr(x, top, w, WH - top + 30, [14, 14, 0, 0], th.dirt);
     // dirt pattern
     for (let c = r.x0; c < r.x1; c++) for (let row = 1; row < r.h; row++) {
       const hsh = hash(c * 31 + row * 7);
@@ -1707,9 +1846,32 @@ function drawDecor(kind, x, y, h, c) {
   }
 }
 function drawPlat(p) {
-  const th = lvl.th, x = p.x, y = p.y, w = p.w;
-  if (x > cam.x + VW + 20 || x + w < cam.x - 20) return;
+  const th = lvl.th, w = p.w;
+  let x = p.x, y = p.y;
+  if (x > cam.x + VW + 20 || x + w < cam.x - 20 || y > cam.y + VH + 40 || y < cam.y - 40 || p.gone > 0) return;
+  if (p.kind === 'c') {
+    // a clump of leaves: wobbles once stepped on, fades as it drops
+    if (p.t > 0 && !p.fall) x += Math.sin(p.t * 1.3) * 2;
+    ctx.globalAlpha = p.fall ? Math.max(0, 1 - p.fall / 60) : 1;
+    rr(x + 4, y + 4, w - 8, 8, 4, '#8A5A36');
+    for (let i = 0; i <= w / 12; i++) {
+      const lx = x + 6 + i * (w - 12) / Math.max(1, Math.floor(w / 12));
+      ell(lx, y + 5 + (i % 2) * 3, 10, 7, i % 2 ? '#8FCB6E' : '#A6DB84');
+    }
+    ell(x + w / 2 - 4, y + 2, 5, 3, 'rgba(255,255,255,.55)');
+    if (p.t > 0 && !p.fall) { ctx.font = `14px ${FONT_D}`; ctx.textAlign = 'center'; ctx.fillStyle = '#E0457B'; ctx.fillText('!', x + w / 2, y - 8); ctx.textAlign = 'left'; }
+    ctx.globalAlpha = 1;
+    return;
+  }
   switch (th.plat) {
+    case 'branch': {
+      rr(x, y, w, 15, 7, '#A86E3E'); rr(x + 2, y + 10, w - 4, 5, [0, 0, 6, 6], '#8A5A36');
+      ctx.fillStyle = '#C98E5C'; for (let i = 0; i < w / 14; i++) rr(x + 6 + i * 14, y + 4, 7, 2, 1);
+      // a leafy tuft at each end, and a little yuzu blossom on wide branches
+      for (const ex of [x + 2, x + w - 2]) { ell(ex, y + 2, 9, 7, '#8FCB6E'); ell(ex + (ex === x + 2 ? 5 : -5), y - 2, 6, 5, '#A6DB84'); }
+      if (w >= 108) { ell(x + w / 2, y - 3, 4, 4, '#FFFFFF'); ell(x + w / 2, y - 3, 1.6, 1.6, '#FFD34D'); }
+      break;
+    }
     case 'plank':
       rr(x, y, w, 16, 8, '#E3AE78'); rr(x, y + 11, w, 5, [0, 0, 8, 8], '#C98E5C');
       ctx.fillStyle = '#C98E5C'; for (let i = 1; i < w / T; i++) rr(x + i * T - 1, y + 3, 2, 8, 1);
@@ -1740,7 +1902,7 @@ function drawPlat(p) {
       ctx.restore(); ctx.fillStyle = 'rgba(255,255,255,.55)'; rr(x + 6, y + 2, w - 12, 3, 1.5);
       break;
   }
-  if (p.kind !== 's') { ctx.fillStyle = 'rgba(255,255,255,.8)'; star(x + w / 2, y + 30 + Math.sin(tick * .1) * 2, 4); }
+  if (p.kind === 'm' || p.kind === 'v') { ctx.fillStyle = 'rgba(255,255,255,.8)'; star(x + w / 2, y + 30 + Math.sin(tick * .1) * 2, 4); }
 }
 function drawSpike(s) {
   const th = lvl.th, x = s.cx, y = s.base;
@@ -2116,6 +2278,21 @@ function drawBoss() {
 function drawGoal(front) {
   const g = lvl.goal; if (!g || g.x < cam.x - 200 || g.x > cam.x + VW + 200) return;
   const x = g.x, y = g.y;
+  if (!front && lvl.def.mode === 'tower') {
+    // the treehouse at the top of the great yuzu tree
+    const hx = x - 190;
+    rr(hx - 70, y - 118, 140, 118, 10, '#FFF1DC');
+    ctx.fillStyle = '#F2DEC4'; for (let yy = y - 100; yy < y - 4; yy += 20) ctx.fillRect(hx - 66, yy, 132, 2);
+    ctx.fillStyle = '#F4889F'; ctx.beginPath(); ctx.moveTo(hx - 88, y - 108); ctx.quadraticCurveTo(hx, y - 220, hx + 88, y - 108); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#E0718A'; for (let sx = hx - 80; sx <= hx + 80; sx += 16) ell(sx, y - 108, 8.5, 6);
+    ctx.fillStyle = 'rgba(255,214,120,.35)'; ell(hx + 26, y - 70, 32, 28);
+    rr(hx + 6, y - 90, 40, 38, 9, '#FFE08A');
+    ctx.strokeStyle = '#C98E5C'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(hx + 6, y - 90, 40, 38, 9); ctx.stroke();
+    rr(hx - 52, y - 72, 34, 72, [17, 17, 0, 0], '#B07A4A'); heart(hx - 35, y - 58, 12, '#FF8FAB');
+    ctx.strokeStyle = '#8A5A36'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(hx, y - 164); ctx.lineTo(hx, y - 200); ctx.stroke();
+    ctx.fillStyle = '#FF8FAB'; ctx.beginPath(); ctx.moveTo(hx, y - 200); ctx.lineTo(hx + 24 + Math.sin(tick * .1) * 3, y - 193); ctx.lineTo(hx, y - 186); ctx.fill();
+    ctx.font = `12px ${FONT_D}`; ctx.fillStyle = '#5B3A29'; ctx.textAlign = 'center'; ctx.fillText('top!', hx, y - 124); ctx.textAlign = 'left';
+  }
   if (!front) {
     // sign
     rr(x + 56, y - 60, 6, 60, 3, '#B07A4A'); rr(x + 36, y - 74, 46, 26, 8, '#E3AE78');
@@ -2140,16 +2317,16 @@ function drawWater() {
   for (const w of lvl.water) {
     if (w.x1 < cam.x || w.x0 > cam.x + VW) continue;
     ctx.globalAlpha = .62; ctx.fillStyle = th.water;
-    ctx.beginPath(); ctx.moveTo(w.x0, VH);
+    ctx.beginPath(); ctx.moveTo(w.x0, WH);
     for (let x = w.x0; x <= w.x1; x += 6) ctx.lineTo(x, w.y + Math.sin(x * .05 + tick * .08) * 2.5);
-    ctx.lineTo(w.x1, VH); ctx.fill();
+    ctx.lineTo(w.x1, WH); ctx.fill();
     ctx.globalAlpha = .9; ctx.strokeStyle = th.waterTop; ctx.lineWidth = 3; ctx.beginPath();
     for (let x = w.x0; x <= w.x1; x += 6) ctx.lineTo(x, w.y + Math.sin(x * .05 + tick * .08) * 2.5);
     ctx.stroke(); ctx.globalAlpha = 1;
     // steam / fizz
     for (let i = 0; i < (w.x1 - w.x0) / 60; i++) {
       const k = ((tick * .5 + i * 47) % 140) / 140, sx = w.x0 + 20 + i * 60 + Math.sin(k * 5 + i) * 8;
-      if (th.decor === 'lolly') { ell(sx, VH - 20 - k * (VH - 20 - w.y), 3, 3, 'rgba(255,255,255,.7)'); }
+      if (th.decor === 'lolly') { ell(sx, WH - 20 - k * (WH - 20 - w.y), 3, 3, 'rgba(255,255,255,.7)'); }
       else { ctx.fillStyle = `rgba(255,255,255,${.4 * (1 - k)})`; ell(sx, w.y - 6 - k * 50, 8 + k * 10, 6 + k * 6); }
     }
   }
@@ -2182,6 +2359,17 @@ function drawAmbient() {
     else if (a === 'firefly') { ctx.globalAlpha = .5 + .5 * Math.sin(p.r * 3); ell(p.x, p.y, 8, 8, 'rgba(210,255,150,.25)'); ell(p.x, p.y, 2.2, 2.2, '#EFFFB0'); }
   }
   ctx.globalAlpha = 1;
+  for (const b of flutters) {
+    const flap = Math.abs(Math.sin(b.t * .32));
+    ctx.save(); ctx.translate(b.x, b.y); ctx.scale(b.vx < 0 ? -1 : 1, 1);
+    ctx.globalAlpha = .92;
+    ell(-4, -3, 5.5 * flap + .8, 6.5, b.c); ell(4, -3, 5.5 * flap + .8, 6.5, b.c);
+    ell(-3, 4, 3.8 * flap + .6, 4.2, b.c); ell(3, 4, 3.8 * flap + .6, 4.2, b.c);
+    ctx.globalAlpha = 1;
+    rr(-1.2, -6, 2.4, 12, 1.2, '#6B4A3A');
+    ctx.strokeStyle = '#6B4A3A'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, -6); ctx.lineTo(-3, -10); ctx.moveTo(0, -6); ctx.lineTo(3, -10); ctx.stroke();
+    ctx.restore();
+  }
 }
 function drawHUD() {
   const RX = VW - 14 - (APP ? 50 : 0);
@@ -2204,15 +2392,16 @@ function drawHUD() {
     ctx.fillStyle = '#FF9F43'; ctx.beginPath(); ctx.ellipse(dx + 9, 34, 3.2, 1.6, 0, 0, Math.PI * 2); ctx.fill();
     ell(dx + 4, 32, 1.1, 1.2, '#3E2A22'); ctx.fillStyle = '#5B3A29';
   }
-  if (settings.timer) {
-    const s = frames / 60, txt = Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') + '.' + Math.floor((s % 1) * 10);
+  const tower = lvl.i === TOWER;
+  if (settings.timer || tower) {
+    const txt = fmtTime(frames) + (tower ? '   falls ' + lvl.falls : '');
     ctx.font = `16px ${FONT_D}`; const tw = ctx.measureText(txt).width + 30;
     ctx.fillStyle = 'rgba(255,248,238,.92)'; rr(14, 64, tw, 30, 15);
     ctx.fillStyle = '#5B3A29'; ctx.fillText(txt, 29, 80);
   }
   const icons = []; if (P.shield) icons.push('shield'); if (P.power) icons.push(P.power);
   if (icons.length) {
-    const py = settings.timer ? 100 : 64, barW = P.power ? 70 : 0, w = 18 + icons.length * 32 + barW;
+    const py = settings.timer || tower ? 100 : 64, barW = P.power ? 70 : 0, w = 18 + icons.length * 32 + barW;
     ctx.fillStyle = 'rgba(255,248,238,.92)'; rr(14, py, w, 34, 17);
     icons.forEach((t, i) => drawPowerIcon(t, 34 + i * 32, py + 18, 10));
     if (P.power) {
@@ -2236,30 +2425,216 @@ function drawHUD() {
     ctx.fillStyle = 'rgba(255,248,238,.8)'; rr(RX - sw, 58, sw, 28, 14);
     ctx.fillStyle = '#8A6450'; ctx.fillText(sp, RX - sw + 14, 73);
   }
-  const name = `${lvl.i + 1} · ${lvl.def.name}`;
+  const name = lvl.i === TOWER ? lvl.def.name : `${lvl.i + 1} · ${lvl.def.name}`;
   ctx.font = `15px ${FONT_D}`; const w = ctx.measureText(name).width + 34;
   ctx.fillStyle = 'rgba(255,248,238,.92)'; rr(RX - w, 14, w, 36, 18);
   ctx.fillStyle = '#5B3A29'; ctx.fillText(name, RX - w + 17, 33);
+  if (tower && lvl.goal) {
+    // height meter: how far up the tree capy is, with ticks for the checkpoints
+    const bx = RX - 22, by = 64, bh = 220, base = WH - T, span = base - lvl.goal.y;
+    const prog = y => clamp((base - y) / span, 0, 1);
+    rr(bx, by, 16, bh, 8, 'rgba(255,248,238,.9)');
+    rr(bx + 4, by + 4 + (bh - 8) * (1 - prog(P.y + P.h)), 8, (bh - 8) * prog(P.y + P.h), 4, '#8FCB6E');
+    for (const c of lvl.checks) ell(bx + 8, by + 4 + (bh - 8) * (1 - prog(c.y)), 4, 2, c.on ? '#FF8FAB' : '#E8D3C0');
+    heart(bx + 8, by - 6, 12, '#FF8FAB');
+    drawYuzuAt(bx + 8, by + 4 + (bh - 8) * (1 - prog(P.y + P.h)), 6, 0);
+  }
   ctx.textBaseline = 'alphabetic';
 }
+/* ---------------- capy's home (title screen) ---------------- */
+function drawCottage(x0, base) {
+  // chimney with lazy smoke puffs
+  rr(x0 + 140, base - 200, 24, 60, 4, '#C98E5C'); rr(x0 + 136, base - 206, 32, 10, 4, '#B07A4A');
+  for (let i = 0; i < 3; i++) {
+    const k = ((tick * .4 + i * 40) % 120) / 120;
+    ctx.fillStyle = `rgba(255,255,255,${.75 * (1 - k)})`;
+    ell(x0 + 152 + Math.sin(k * 5 + i) * 7 + k * 22, base - 212 - k * 90, 8 + k * 12, 7 + k * 9);
+  }
+  // walls with soft plank lines
+  rr(x0, base - 118, 200, 118, 8, '#FFF1DC');
+  ctx.fillStyle = '#F2DEC4'; for (let yy = base - 100; yy < base - 4; yy += 20) ctx.fillRect(x0 + 4, yy, 192, 2);
+  // rounded pink roof with a scalloped edge
+  ctx.fillStyle = '#F4889F'; ctx.beginPath(); ctx.moveTo(x0 - 22, base - 108);
+  ctx.quadraticCurveTo(x0 + 100, base - 250, x0 + 222, base - 108); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#E0718A'; for (let sx = x0 - 12; sx <= x0 + 212; sx += 16) ell(sx, base - 108, 8.5, 6);
+  // round attic window
+  ell(x0 + 100, base - 156, 15, 15, '#FFE9A8');
+  ctx.strokeStyle = '#C98E5C'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x0 + 100, base - 156, 15, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x0 + 85, base - 156); ctx.lineTo(x0 + 115, base - 156); ctx.stroke();
+  // front door with a heart and a doormat
+  rr(x0 + 24, base - 80, 44, 80, [22, 22, 0, 0], '#B07A4A');
+  rr(x0 + 29, base - 75, 34, 72, [18, 18, 0, 0], '#C48A55');
+  heart(x0 + 46, base - 62, 14, '#FF8FAB'); ell(x0 + 59, base - 36, 2.6, 2.6, '#FFD34D');
+  rr(x0 + 16, base - 4, 60, 6, 3, '#FF9EB5');
+  // warm window with curtains and a flower box
+  ctx.fillStyle = 'rgba(255,214,120,.35)'; ell(x0 + 142, base - 72, 42, 36);
+  rr(x0 + 114, base - 98, 56, 50, 10, '#FFE08A');
+  ctx.fillStyle = '#FFB3C7';
+  ctx.beginPath(); ctx.moveTo(x0 + 118, base - 94); ctx.lineTo(x0 + 136, base - 94); ctx.lineTo(x0 + 118, base - 62); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x0 + 166, base - 94); ctx.lineTo(x0 + 148, base - 94); ctx.lineTo(x0 + 166, base - 62); ctx.fill();
+  ctx.strokeStyle = '#C98E5C'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(x0 + 114, base - 98, 56, 50, 10); ctx.stroke();
+  rr(x0 + 108, base - 50, 68, 12, 4, '#C98E5C');
+  for (let i = 0; i < 5; i++) { ell(x0 + 116 + i * 13, base - 53, 5, 5, ['#FF8FAB', '#FFFFFF', '#FFD34D'][i % 3]); ell(x0 + 116 + i * 13, base - 53, 1.8, 1.8, '#FFB627'); }
+  // little lantern by the door, softly glowing
+  ctx.strokeStyle = '#8A5A36'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0 + 84, base - 96); ctx.lineTo(x0 + 84, base - 86); ctx.stroke();
+  ctx.fillStyle = `rgba(255,220,130,${.25 + .1 * Math.sin(tick * .06)})`; ell(x0 + 84, base - 78, 16, 16);
+  rr(x0 + 78, base - 86, 12, 16, 5, '#FFD66B');
+  // name plaque
+  rr(x0 + 70, base - 116, 60, 16, 6, '#C98E5C');
+  ctx.font = `11px ${FONT_D}`; ctx.fillStyle = '#FFF1DC'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('capy ♥', x0 + 100, base - 107); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+function drawYuzuTree(x, base) {
+  rr(x - 10, base - 130, 20, 130, 9, '#A86E3E'); rr(x - 4, base - 110, 5, 60, 3, '#8A5A36');
+  const puffs = [[0, -150, 58], [-44, -126, 40], [42, -124, 42], [-20, -186, 38], [24, -182, 36]];
+  for (const [dx, dy, r] of puffs) ell(x + dx, base + dy, r, r * .85, '#8FCB6E');
+  for (const [dx, dy, r] of puffs) ell(x + dx - r * .25, base + dy - r * .3, r * .45, r * .3, 'rgba(255,255,255,.18)');
+  const fruit = [[-30, -140], [14, -128], [36, -160], [-8, -176], [-50, -112], [30, -106]];
+  fruit.forEach(([dx, dy], i) => drawYuzuAt(x + dx, base + dy + Math.sin(tick * .04 + i) * 1.2, 7, 0));
+}
+function drawBunny(x, y, th, k) {
+  const fur = th.decor === 'lolly' ? '#FFD6E8' : '#FFFFFF', sleepy = th.decor === 'glowshroom';
+  const twitch = !sleepy && (tick + k * 97) % 260 < 10 ? .3 : 0;
+  ctx.save(); ctx.translate(x, y); ctx.scale(k % 2 ? -1 : 1, 1);
+  ell(0, 1, 10, 2, 'rgba(60,40,40,.12)');
+  ell(-1, -6, 9, 7, fur); ell(5, -12, 6, 5.5, fur); ell(-9, -6, 3, 3, fur);
+  for (const [ex, a] of [[3, -.3 - twitch], [7, .15 + twitch]]) {
+    ctx.save(); ctx.translate(ex, -16); ctx.rotate(a); ell(0, -6, 2.3, 6.5, fur); ell(0, -6, 1, 4.5, '#FFB8C8'); ctx.restore();
+  }
+  if (sleepy) { ctx.strokeStyle = '#3E2A22'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(7, -13, 1.4, .1 * Math.PI, .9 * Math.PI); ctx.stroke(); }
+  else ell(7, -13, 1.1, 1.3, '#3E2A22');
+  ctx.fillStyle = 'rgba(255,130,150,.55)'; ell(8.5, -10.5, 1.8, 1.1);
+  ctx.restore();
+  if (sleepy) {
+    const z = (tick * .4 + k * 30) % 60;
+    ctx.globalAlpha = 1 - z / 60; ctx.font = `11px ${FONT_D}`; ctx.fillStyle = '#EDE3FF';
+    ctx.fillText('z', x + 8 + z * .2, y - 22 - z * .4); ctx.globalAlpha = 1;
+  }
+}
 function drawTitleScene() {
-  const th = THEMES.meadow;
-  drawBG(th, cam.x);
-  ctx.fillStyle = th.dirt; ctx.fillRect(0, VH - 70, VW, 70);
-  rr(-5, VH - 75, VW + 10, 17, 9, th.grass);
-  ctx.fillStyle = th.grass; for (let i = 0; i < VW / 14 + 2; i++) ell(i * 14 - (cam.x % 14), VH - 64, 6.5, 4 + hash(i + Math.floor(cam.x / 14)) * 5);
-  for (let i = 0; i < 16; i++) { const x = ((hash(i) * 1400 - cam.x) % 1400 + 1400) % 1400 - 200; drawDecor('flower', x, VH - 76, hash(i + 3) * .38, i); }
-  if (buddyOn()) drawTurtle(VW / 2 + 196, VH - 74, { dir: 1, walk: tick * .3 });
-  drawCapy(VW / 2 + 250, VH - 74, { dir: 1, walk: tick * .25, yuzu: 3 + Math.floor((tick / 120) % 4), blink: tick % 200 < 8, still: true, hat: wornHat() });
+  // golden-hour sky
+  const sky = ctx.createLinearGradient(0, 0, 0, VH);
+  sky.addColorStop(0, '#9EDFFF'); sky.addColorStop(.6, '#FFE3EC'); sky.addColorStop(1, '#FFD8B5');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, VW, VH);
+  const sx = VW * .3, sy = 86;
+  ctx.save(); ctx.translate(sx, sy); ctx.rotate(tick * .004); ctx.fillStyle = 'rgba(255,226,122,.5)';
+  for (let i = 0; i < 10; i++) { ctx.rotate(Math.PI / 5); rr(-5, -72, 10, 20, 5); }
+  ctx.restore(); ell(sx, sy, 42, 42, '#FFE27A'); cuteFace(sx, sy + 4, 5.2, '#8A5A2B');
+  for (let i = 0; i < 4; i++) {
+    const w = VW + 300, x = ((hash(i + 20) * w + tick * .18 * (1 + i * .15)) % w) - 150;
+    cloudPuff(x, 50 + hash(i + 40) * 120, 22 + hash(i + 5) * 14, '#FFFFFF', i % 3 === 1 ? 'sleepy' : true);
+  }
+  hills('#C3ECC4', 372, 30, .005, 0, 0, 1);
+  hills('#A2DCA5', 428, 20, .007, 0, 0, 4);
+  // lawn
+  const gy = VH - 70;
+  ctx.fillStyle = '#D99D6C'; ctx.fillRect(0, gy, VW, VH - gy);
+  for (let i = 0; i < VW / 40; i++) ell(20 + i * 40 + hash(i) * 14, gy + 30 + hash(i + 9) * 26, 3.2, 2.4, '#F0BE90');
+  rr(-5, gy - 5, VW + 10, 17, 9, '#86D27E');
+  ctx.fillStyle = '#86D27E'; for (let i = 0; i < VW / 14 + 2; i++) ell(i * 14, gy + 11, 6.5, 4 + hash(i) * 5);
+  // a low picket fence along the back of the garden
+  for (let x = 250; x < VW; x += 22) { rr(x, gy - 34, 12, 34, [6, 6, 0, 0], '#FFF6EA'); }
+  rr(240, gy - 24, VW - 240, 6, 3, '#FFE6D2');
+  // capy's home: yuzu tree, cottage, and a warm outdoor bath
+  drawYuzuTree(46, gy);
+  drawCottage(96, gy);
+  for (let i = 0; i < 9; i++) drawDecor('flower', 310 + i * 17 + hash(i) * 6, gy - 3, hash(i + 3) * .38, i);
+  const tx = 372;
+  ctx.fillStyle = 'rgba(255,255,255,.55)';
+  for (let i = 0; i < 4; i++) { const k = ((tick * .6 + i * 30) % 120) / 120; ell(tx - 24 + i * 16 + Math.sin(k * 6 + i) * 6, gy - 46 - k * 70, 9 + k * 8, 7 + k * 6); }
+  drawCapy(tx + 6, gy - 30, { dir: -1, sit: true, happy: true, noShadow: true, still: true, hat: wornHat(), yuzu: 1 });
+  ell(tx, gy - 34, 44, 9, '#8FDCD6'); ell(tx - 10, gy - 36, 12, 3, 'rgba(255,255,255,.6)');
+  drawYuzuAt(tx + 24, gy - 36 + Math.sin(tick * .05) * 1.5, 6, 0);
+  rr(tx - 48, gy - 36, 96, 36, [10, 10, 16, 16], '#D69A62');
+  ctx.fillStyle = '#B47A45'; rr(tx - 48, gy - 28, 96, 5, 2); rr(tx - 48, gy - 12, 96, 5, 2);
+  heart(tx, gy - 26, 12, '#FF8FAB');
+  if (buddyOn()) drawTurtle(tx - 76, gy, { dir: 1, walk: 0 });
+  drawBunny(18, gy + 1, THEMES.meadow, 2);
   drawAmbient();
+}
+
+/* ---------------- the great yuzu tree (climb mode) ---------------- */
+function lerpHex(a, b, t) {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16), ch = (v, s) => (v >> s) & 255;
+  const mix = s => Math.round(ch(pa, s) + (ch(pb, s) - ch(pa, s)) * t);
+  return `rgb(${mix(16)},${mix(8)},${mix(0)})`;
+}
+function skyAt(f) {
+  const stops = [[0, '#9EDFFF', '#E8F7FF'], [.55, '#FFB997', '#FFE6D2'], [1, '#2A2465', '#8A5BA8']];
+  for (let i = 0; i < stops.length - 1; i++) {
+    const [f0, a0, b0] = stops[i], [f1, a1, b1] = stops[i + 1];
+    if (f <= f1) { const t = (f - f0) / (f1 - f0); return [lerpHex(a0, a1, t), lerpHex(b0, b1, t)]; }
+  }
+  return [stops[2][1], stops[2][2]];
+}
+function drawTreeBG() {
+  // the sky turns from morning to sunset to a starry night as capy climbs
+  const H = Math.max(1, WH - VH), f = clamp(1 - cam.y / H, 0, 1), rise = H - cam.y;
+  const [top, bot] = skyAt(f);
+  const g = ctx.createLinearGradient(0, 0, 0, VH); g.addColorStop(0, top); g.addColorStop(1, bot);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH);
+  if (f > .55) {
+    ctx.globalAlpha = (f - .55) / .45;
+    for (let i = 0; i < 60; i++) {
+      const x = hash(i) * VW, y = hash(i + 99) * VH * .8;
+      ctx.globalAlpha = ((f - .55) / .45) * (.4 + .6 * (.5 + .5 * Math.sin(tick * .05 + i)));
+      if (i % 8 === 0) star(x, y, 4.5, '#FFF4C2'); else ell(x, y, 1.4, 1.4, '#FFFFFF');
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (f < .8) { const y = 110 + f * 320; ell(VW - 150, y, 44, 44, f < .45 ? '#FFE27A' : '#FFC98A'); cuteFace(VW - 150, y + 4, 5.4, '#8A5A2B', f > .4); }
+  if (f > .72) { ctx.globalAlpha = (f - .72) / .28; ell(150, 90, 36, 36, '#FFF3C4'); cuteFace(146, 96, 4.8, '#7A5C7A', true); ctx.globalAlpha = 1; }
+  // the far-off meadow sinks away below
+  const hy = rise * .5;
+  if (hy < 320) { hills('#C3ECC4', 380 + hy, 34, .005, 0, 0, 1); hills('#A2DCA5', 440 + hy, 24, .007, 0, 0, 4); }
+  // the giant trunk, with the odd knothole where a sleepy owl lives
+  const tw = Math.min(VW * .5, 460), tx = VW / 2 - tw / 2, par = rise * .6;
+  ctx.fillStyle = '#B98A62'; ctx.fillRect(tx, 0, tw, VH);
+  ctx.fillStyle = '#A87A54';
+  for (let i = 0; i < 7; i++) { const lx = tx + 30 + i * (tw - 60) / 6; for (let y = (par % 70) - 70; y < VH; y += 70) rr(lx - 2, y, 5, 44, 3); }
+  for (let i = Math.floor((par - 200) / 520); i <= Math.floor((par + VH) / 520); i++) {
+    if (hash(i + 5) < .35) continue;
+    const y = par - i * 520 + 180, x = tx + tw * (.25 + hash(i) * .5);
+    if (y < -60 || y > VH + 60) continue;
+    ell(x, y, 26, 32, '#6E4A30');
+    const blink = (tick + i * 70) % 220 < 10;
+    ell(x, y + 4, 18, 20, '#C9A27A');
+    if (blink) { ctx.strokeStyle = '#3E2A22'; ctx.lineWidth = 2; for (const ex of [-7, 7]) { ctx.beginPath(); ctx.moveTo(x + ex - 4, y); ctx.lineTo(x + ex + 4, y); ctx.stroke(); } }
+    else for (const ex of [-7, 7]) { ell(x + ex, y, 6, 6, '#FFFFFF'); ell(x + ex, y + 1, 3.2, 3.4, '#3E2A22'); }
+    ctx.fillStyle = '#FFB627'; ctx.beginPath(); ctx.moveTo(x - 3, y + 7); ctx.lineTo(x + 3, y + 7); ctx.lineTo(x, y + 12); ctx.fill();
+  }
+  // clouds drifting past at different heights
+  const cp = rise * .35;
+  for (let i = Math.floor((cp - 140) / 260); i <= Math.ceil((cp + VH + 20) / 260); i++) {
+    const y = cp - i * 260 + VH - 60; if (y < -80 || y > VH + 80) continue;
+    const x = ((hash(i * 3 + 1) * (VW + 300) + tick * .15) % (VW + 300)) - 150;
+    ctx.globalAlpha = f > .75 ? .5 : .9;
+    cloudPuff(x, y, 24 + hash(i) * 16, '#FFFFFF', i % 3 === 1 ? 'sleepy' : true);
+    ctx.globalAlpha = 1;
+  }
+}
+function drawTreeWalls() {
+  // leafy walls on both sides of the climb (world space)
+  const y0 = Math.floor((cam.y - 60) / 40) * 40, y1 = cam.y + VH + 60, R = lvl.W * T;
+  ctx.fillStyle = '#6FA85A'; ctx.fillRect(-600, cam.y - 20, 600, VH + 40); ctx.fillRect(R, cam.y - 20, 600, VH + 40);
+  for (let y = y0; y < y1; y += 40) {
+    for (const [ex, side] of [[0, -1], [R, 1]]) {
+      const k = hash(y * .37 + side * 11);
+      ell(ex + side * 6, y, 18 + k * 8, 24, k > .5 ? '#8FCB6E' : '#7DBB62');
+      ell(ex + side * 26, y + 20, 16, 20, '#6FA85A');
+      if (k > .82) drawYuzuAt(ex - side * 2, y - 6, 6, 0);
+    }
+  }
 }
 
 function render() {
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   if (state === 'title' || state === 'levels' || !lvl) { drawTitleScene(); return; }
-  const th = lvl.th, cx = Math.round(cam.x);
-  drawBG(th, cx);
-  ctx.save(); ctx.translate(-cx, 0);
+  const th = lvl.th, cx = Math.round(cam.x), cy = Math.round(cam.y);
+  const tower = lvl.def.mode === 'tower';
+  if (tower) drawTreeBG(); else drawBG(th, cx);
+  ctx.save(); ctx.translate(-cx, -cy);
+  if (tower) drawTreeWalls();
   drawGround();
   for (const p of lvl.plats) drawPlat(p);
   for (const s of lvl.spikes) if (s.cx > cam.x - 40 && s.cx < cam.x + VW + 40) drawSpike(s);
