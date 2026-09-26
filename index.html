@@ -7,7 +7,7 @@
 </head><body><title>Capybara Yuzu Hop</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=M+PLUS+Rounded+1c:wght@500;800&family=Fredoka:wght@500;600;700&display=swap">
 <style>
   :root{
     color-scheme: light;
@@ -113,7 +113,17 @@
   /* title card sits on the right so capy's home shows on the left */
   #title{align-items:flex-end; padding-right:3cqw}
   #title .card{max-width:44cqw; box-sizing:border-box; padding:3cqh 2.6cqw; gap:1.4cqh; background:rgba(255,248,238,.94)}
-  #title h1{font-size:5.2cqw}
+  #title h1, #final h1{font-family:"Fredoka","M PLUS Rounded 1c","Arial Rounded MT Bold",system-ui,sans-serif; font-weight:600;
+    letter-spacing:.01em; text-shadow:0 .35cqw 0 rgba(242,154,14,.22)}
+  #title h1{font-size:5.6cqw}
+  .jarline{margin:0; font-weight:800; font-size:1.5cqw; color:var(--cocoa-soft); display:flex; align-items:center; gap:.6cqw}
+  .yz{display:inline-block; width:1.5cqw; height:1.5cqw; border-radius:50%; background:radial-gradient(circle at 35% 35%,#FFE680,#FFB21E); box-shadow:0 .15cqw 0 #E09A10}
+  .wardbar{display:flex; gap:2cqw; align-items:center; justify-content:center; flex-wrap:wrap}
+  .wardbar .jarline{font-size:1.8cqw; background:#fff; padding:.8cqh 1.6cqw; border-radius:10cqw; box-shadow:0 .5cqh 0 #F2C3D0}
+  .wardbar .yz{width:1.9cqw; height:1.9cqw}
+  .hat .price{color:var(--yuzu-deep); padding-inline:.6cqw; display:flex; align-items:center; justify-content:center; gap:.4cqw}
+  .hat.buy{outline:.45cqw dashed var(--pink)}
+  .hat.poor{opacity:.75}
   #title .tag{font-size:1.65cqw}
   #title .row{gap:1cqw}
   #title button{font-size:1.9cqw; padding:1.2cqh 2.2cqw}
@@ -121,7 +131,7 @@
   .hat{font-family:var(--body); font-weight:800; font-size:1.35cqw; background:#fff; color:var(--cocoa);
     border-radius:2.4cqw; padding:0 0 1.2cqh; box-shadow:0 .8cqh 0 #F2C3D0; display:flex; flex-direction:column;
     gap:.6cqh; overflow:hidden; text-align:center; line-height:1.25}
-  .hat canvas{width:100%; aspect-ratio:4/3; height:auto; display:block}
+  .hat canvas{width:100%; aspect-ratio:16/11; height:auto; display:block}
   .hat .nm{font-family:var(--display); font-weight:400; font-size:1.45cqw; padding-inline:.6cqw}
   .hat .how{color:var(--cocoa-soft); padding-inline:.6cqw}
   .hat[aria-pressed="true"]{box-shadow:0 .8cqh 0 var(--yuzu-deep); outline:.45cqw solid var(--yuzu)}
@@ -161,6 +171,7 @@
       <p class="eyebrow">a very cozy platformer</p>
       <h1>Capybara <span class="y">Yuzu</span> Hop</h1>
       <p class="tag">Collect yuzu with Kame the turtle, bonk grumpy snails, and hop your way to five warm baths.</p>
+      <p class="jarline" id="titleJar"><span class="yz"></span><span id="titleJarNum">0</span> yuzu in the jar</p>
       <div class="row">
         <button id="btnPlay">Play ♪</button>
         <button id="btnLevels" class="alt">Choose level</button>
@@ -181,6 +192,10 @@
 
   <div id="wardrobe" class="ov veil" hidden>
     <h2>Capy's wardrobe</h2>
+    <div class="wardbar">
+      <div class="seg" id="wardTabs"><button type="button" data-tab="hats" aria-pressed="true">Hats</button><button type="button" data-tab="fur" aria-pressed="false">Fur colors</button></div>
+      <p class="jarline"><span class="yz"></span><span id="jarNum">0</span> yuzu in the jar</p>
+    </div>
     <p class="tag" id="wardLine">Every level hides one golden rubber duck. Each duck you find unlocks a new hat.</p>
     <div class="hats" id="hatGrid"></div>
     <button id="btnWardBack" class="alt">Back</button>
@@ -239,7 +254,7 @@
         </div>
       </div>
       <div class="row" id="setBtns"><button id="btnSetDone" type="button">Done</button><button id="btnSetHome" class="alt" type="button">Home screen</button><button id="btnSetDefaults" class="alt" type="button">Reset settings</button><button id="btnResetProg" class="alt" type="button">Erase progress</button></div>
-      <div class="row" id="confirmRow" hidden><span class="small">Erase your best yuzu for every level?</span><button id="btnEraseYes" type="button">Erase</button><button id="btnEraseNo" class="alt" type="button">Keep it</button></div>
+      <div class="row" id="confirmRow" hidden><span class="small">Erase best scores, golden ducks, your yuzu jar and everything you bought?</span><button id="btnEraseYes" type="button">Erase</button><button id="btnEraseNo" class="alt" type="button">Keep it</button></div>
     </div>
   </div>
 
@@ -253,6 +268,7 @@
         <div><b id="stBonk">0</b><span id="lbBonk">bonks</span></div>
         <div><b id="stDuck">-</b><span id="lbDuck">golden duck</span></div>
       </div>
+      <p class="jarline" id="jarLine"></p>
       <div class="row"><button id="btnNext">Next level</button><button id="btnReplay" class="alt">Replay</button></div>
     </div>
   </div>
@@ -370,7 +386,7 @@ const LEVELS = [
       ['p', 38, 5, 3], ['o', 38, 5, 3], ['C', 43], ['*', 44, 6, 'shield'], ['^', 47, null, 2], ['o', 47, 5, 2], ['B', 55], ['p', 54, 8, 5], ['o', 54, 8, 5],
       ['s', 63], ['*', 64, 4, 'star'], ['o', 71, 6, 2], ['b', 81, 6], ['o', 77, 3, 3], ['o', 84, 3, 3], ['o', 88, 5, 2], ['A', 93, 3, 'double'], ['f', 99], ['D', 57, 12],
       ['o', 97, 6, 2], ['o', 104, 6, 3], ['*', 108, 6, 'magnet'], ['o', 108, 3, 3], ['s', 111], ['C', 117], ['o', 118, 4, 3], ['o', 121, 5, 3],
-      ['p', 124, 8, 3], ['o', 124, 8, 3], ['*', 125, 9, 'cake'], ['o', 128, 3, 4], ['s', 131], ['b', 133, 6], ['o', 137, 5, 2], ['o', 141, 3, 3], ['G', 148]] },
+      ['p', 124, 8, 3], ['o', 124, 8, 3], ['*', 125, 9, 'cake'], ['o', 128, 3, 4], ['s', 131], ['b', 133, 6], ['o', 137, 5, 2], ['o', 141, 3, 3], ['*', 10, 5, 'bunny'], ['G', 148]] },
   { name: 'Yuzu Hot Springs', theme: 'onsen', song: 'onsen', line: 'Warm pools everywhere. Tap hop to paddle, hold down to dive.',
     ground: '3:10 1:6 3:6 4:3 3:4 1:10 3:8 4:3 0:3 4:4 3:6 1:12 3:4 4:4 5:10 3:12 0:3 3:6 1:10 3:4 0:5 4:6 3:12',
     water: [[10, 16, 2.7], [29, 39, 2.7], [63, 75, 2.7], [114, 124, 2.7]],
@@ -378,7 +394,7 @@ const LEVELS = [
       ['p', 35, 5, 2], ['o', 35, 5, 2], ['C', 41], ['A', 45, 3, 'dash'], ['o', 50, 6, 3], ['b', 59, 6], ['*', 60, 7, 'zoom'], ['o', 66, 1, 2], ['o', 70, 4, 3], ['b', 69, 5.5],
       ['^', 77, null, 1], ['B', 84], ['p', 85, 10, 4], ['o', 85, 10, 4], ['s', 89], ['o', 95, 3, 3], ['o', 100, 3, 3], ['f', 98], ['D', 73, 1],
       ['o', 108, 4, 3], ['*', 109, 6, 'shield'], ['s', 111], ['o', 115, 1, 4], ['*', 119, 1, 'star'], ['b', 118, 5.5], ['o', 120, 4, 3],
-      ['C', 125], ['p', 130, 5, 1], ['o', 130, 6, 1], ['o', 133, 4, 3], ['^', 136, null, 1], ['o', 136, 6, 1], ['o', 141, 3, 4], ['G', 146]] },
+      ['C', 125], ['p', 130, 5, 1], ['o', 130, 6, 1], ['o', 133, 4, 3], ['^', 136, null, 1], ['o', 136, 6, 1], ['o', 141, 3, 4], ['*', 26, 5, 'bunny'], ['G', 146]] },
   { name: 'Cotton Candy Clouds', theme: 'clouds', song: 'clouds', line: 'Hop across the fluffiest clouds in the whole sky.',
     ground: '4:8 0:6 4:4 0:8 5:5 0:10 5:6 0:8 4:6 0:9 5:6 0:12 4:12 0:6 5:8 0:8 4:6 0:4 4:12',
     objs: [['P', 2], ['o', 3, 4, 3], ['p', 9, 5, 2], ['o', 9, 5, 2], ['p', 12, 6, 2], ['o', 12, 6, 2], ['m', 19, 5, 3, 4], ['o', 20, 7, 3],
@@ -388,7 +404,7 @@ const LEVELS = [
       ['p', 80, 7, 2], ['o', 80, 7, 2], ['m', 83, 6, 2, 2], ['b', 84, 9.5], ['o', 90, 4, 3], ['s', 92],
       ['p', 101, 6, 2], ['o', 101, 6, 2], ['*', 101, 8, 'magnet'], ['p', 104, 7, 2], ['o', 104, 7, 2], ['C', 107], ['K', 109, 5, 2], ['K', 109, 6, 2], ['o', 111, 5, 2],
       ['v', 115, 5, 2, 3], ['o', 115, 9, 2], ['p', 119, 8, 2], ['o', 119, 8, 2], ['b', 118, 10.5], ['*', 123, 6, 'cake'], ['o', 124, 4, 3], ['s', 125],
-      ['m', 128, 5, 2, 2], ['o', 128, 7, 2], ['o', 133, 4, 3], ['f', 136], ['G', 140]] },
+      ['m', 128, 5, 2, 2], ['o', 128, 7, 2], ['o', 133, 4, 3], ['f', 136], ['*', 45, 7, 'bunny'], ['G', 140]] },
   { name: 'Glowshroom Hollow', theme: 'night', song: 'night', line: 'Tiptoe through the sleepy glowing forest. Shh, the snails are dozing.',
     ground: '3:10 2:4 3:4 0:3 3:6 2:10 0:3 3:6 0:2 4:2 0:2 4:2 5:4 2:8 3:6 0:6 4:8 3:4 0:3 3:12 0:3 4:6 2:8 0:3 4:4 0:6 3:12',
     objs: [['P', 2], ['o', 4, 3, 3], ['^', 11, null, 2], ['o', 11, 4, 2], ['o', 15, 3, 3], ['o', 18, 5, 3], ['B', 25], ['p', 26, 8, 4], ['o', 26, 8, 4],
@@ -397,7 +413,7 @@ const LEVELS = [
       ['C', 79], ['s', 83], ['D', 73, 12], ['f', 98], ['o', 81, 4, 2], ['^', 88, null, 1], ['o', 91, 5, 2], ['*', 95, 6, 'magnet'], ['o', 95, 3, 3], ['o', 100, 3, 3],
       ['o', 106, 6, 2], ['C', 109], ['*', 109, 7, 'star'], ['K', 111, 4, 1], ['K', 111, 5, 1], ['K', 111, 6, 1], ['o', 112, 4, 2],
       ['^', 116, null, 2], ['o', 116, 4, 2], ['s', 119], ['o', 123, 5, 2], ['B', 127], ['p', 129, 10, 3], ['o', 129, 10, 3],
-      ['p', 131, 6, 2], ['o', 131, 6, 2], ['o', 137, 3, 4], ['G', 142]] },
+      ['p', 131, 6, 2], ['o', 131, 6, 2], ['o', 137, 3, 4], ['*', 67, 5, 'bunny'], ['G', 142]] },
   { name: 'Starlight Candy Castle', theme: 'candy', song: 'candy', line: 'One last hop to the royal strawberry-soda bath. Someone grumpy guards it…',
     ground: '4:8 0:3 4:4 5:4 6:3 0:6 5:6 1:8 4:6 0:9 5:5 0:10 5:4 3:8 0:3 4:3 0:3 5:3 0:3 4:14 0:3 5:4 0:4 4:40',
     water: [[34, 42, 3.7]],
@@ -407,7 +423,7 @@ const LEVELS = [
       ['m', 63, 5, 3, 5], ['o', 64, 7, 3], ['C', 73], ['s', 78], ['s', 81], ['o', 77, 3, 3], ['o', 85, 6, 2], ['o', 91, 7, 2], ['o', 97, 7, 2],
       ['*', 100, 6, 'star'], ['o', 101, 4, 3], ['f', 102], ['b', 103, 6.5], ['^', 105, null, 2], ['o', 105, 6, 2], ['K', 109, 4, 1], ['K', 109, 5, 1],
       ['o', 113, 7, 3], ['o', 116, 5, 2], ['*', 118, 7, 'shield'], ['m', 120, 5, 2, 2], ['o', 120, 7, 2],
-      ['C', 126], ['X', 145], ['o', 153, 5, 3], ['G', 158]] }
+      ['C', 126], ['X', 145], ['o', 153, 5, 3], ['*', 88, 6, 'bunny'], ['G', 158]] }
 ];
 const MAIN_LEVELS = 5;          // the five bath levels; the tree climb comes after them in LEVELS
 const TOWER = 5;
@@ -462,6 +478,7 @@ function genTower() {
     if (s < SECTIONS - 1) objs.push(['C', at.x + 1, at.y]);
     if (s === 1 || s === 3) objs.push(['*', at.x + 2, at.y + 2, 'shield']);
     if (s === 2 || s === 4) objs.push(['*', at.x + 2, at.y + 2, 'cake']);
+    if (s === 0) objs.push(['*', at.x + 1, at.y + 2, 'bunny']);
     cur = { x: at.x, y: at.y, w: 4 };
   }
   // the treehouse bath on a wide branch across the whole crown
@@ -716,8 +733,9 @@ function updateBuddy() {
   }
 }
 
-let save = { best: {}, ducks: {}, hat: 'none' };
-try { const s = JSON.parse(localStorage.getItem('capyHop') || 'null'); if (s && s.best) save = { ducks: {}, hat: 'none', ...s }; } catch (e) {}
+const FRESH_SAVE = () => ({ best: {}, ducks: {}, hat: 'none', jar: 0, owned: {}, fur: 'classic' });
+let save = FRESH_SAVE();
+try { const s = JSON.parse(localStorage.getItem('capyHop') || 'null'); if (s && s.best) save = { ...FRESH_SAVE(), ...s }; } catch (e) {}
 /* hats: each one is unlocked by the golden duck hidden in one level */
 const HATS = [
   { id: 'none', name: 'Just capy', lvl: -1 },
@@ -725,9 +743,28 @@ const HATS = [
   { id: 'towel', name: 'Onsen towel', lvl: 1 },
   { id: 'bow', name: 'Cloud bow', lvl: 2 },
   { id: 'shroom', name: 'Glowshroom cap', lvl: 3 },
-  { id: 'crown', name: 'Royal crown', lvl: 4 }
+  { id: 'crown', name: 'Royal crown', lvl: 4 },
+  // shop hats, bought with yuzu from the jar
+  { id: 'flower', name: 'Flower crown', price: 40 },
+  { id: 'sun', name: 'Straw sunhat', price: 70 },
+  { id: 'party', name: 'Party hat', price: 90 },
+  { id: 'chef', name: 'Chef hat', price: 120 },
+  { id: 'cat', name: 'Kitty ears', price: 150 },
+  { id: 'halo', name: 'Sunny halo', price: 220 }
 ];
-const hatOpen = h => h.lvl < 0 || !!save.ducks[h.lvl];
+const hatOpen = h => h.lvl < 0 || (h.lvl != null && !!save.ducks[h.lvl]) || (!!h.price && !!save.owned[h.id]);
+/* fur colors, also bought with yuzu */
+const FURS = [
+  { id: 'classic', name: 'Classic', price: 0, fur: '#BA8458', belly: '#D2A47E', head: '#A9744D', leg: '#8B5A3C', snout: '#8E5E3D' },
+  { id: 'cocoa', name: 'Cocoa', price: 60, fur: '#8E5B3B', belly: '#B07E58', head: '#7E4E31', leg: '#5E3A24', snout: '#6A4128' },
+  { id: 'berry', name: 'Strawberry', price: 100, fur: '#F4A6B8', belly: '#FFD3DE', head: '#EE93A9', leg: '#D97890', snout: '#D97F97' },
+  { id: 'snow', name: 'Snowy', price: 140, fur: '#F3EEE8', belly: '#FFFFFF', head: '#E8E0D8', leg: '#C9BDB2', snout: '#D6C8BC' },
+  { id: 'matcha', name: 'Matcha', price: 180, fur: '#A8D5A2', belly: '#D7F0D2', head: '#94C98E', leg: '#6FA868', snout: '#7DB076' },
+  { id: 'gold', name: 'Golden', price: 260, fur: '#F2C14E', belly: '#FFE39A', head: '#E8AE35', leg: '#C98F22', snout: '#CF9528' }
+];
+const furOpen = f => !f.price || !!save.owned['fur:' + f.id];
+const wornFur = () => { const f = FURS.find(f => f.id === save.fur); return f && furOpen(f) ? f : FURS[0]; };
+const furOpts = () => { const f = wornFur(); return { fur: f.fur, belly: f.belly, head: f.head, leg: f.leg, snout: f.snout }; };
 const wornHat = () => { const h = HATS.find(h => h.id === save.hat); return h && hatOpen(h) ? h.id : 'none'; };
 function persist() { try { localStorage.setItem('capyHop', JSON.stringify(save)); } catch (e) {} }
 
@@ -742,7 +779,8 @@ const ABIL_INFO = {
 };
 const POWERS = {
   shield: { name: 'Bubble shield' }, cake: { name: 'Heart cake' },
-  zoom: { name: 'Zoomy tea', dur: 600 }, star: { name: 'Star yuzu', dur: 480 }, magnet: { name: 'Yuzu magnet', dur: 720 }
+  zoom: { name: 'Zoomy tea', dur: 600 }, star: { name: 'Star yuzu', dur: 480 }, magnet: { name: 'Yuzu magnet', dur: 720 },
+  bunny: { name: 'Bunny ears', dur: 240 }   // 4 seconds of hops twice as high
 };
 function showCard(eyebrow, name, line, ms) {
   const c = document.getElementById('card');
@@ -1061,7 +1099,7 @@ $('btnSetDefaults').onclick = () => {
 $('btnResetProg').onclick = () => { $('setBtns').hidden = true; $('confirmRow').hidden = false; $('btnEraseNo').focus(); };
 $('btnEraseNo').onclick = () => { $('confirmRow').hidden = true; $('setBtns').hidden = false; };
 $('btnEraseYes').onclick = () => {
-  save = { best: {}, ducks: {}, hat: 'none' }; persist();
+  save = FRESH_SAVE(); persist(); showJar();
   $('confirmRow').hidden = true; $('setBtns').hidden = false;
   $('bindNote').textContent = 'Progress erased. Every level (and every duck) is fresh again.';
 };
@@ -1071,7 +1109,7 @@ $('btnGear').onclick = () => { $('btnGear').blur(); if ($('settings').hidden) op
 updateKeyLabels();
 $('btnMute').textContent = 'Music: ' + (musicOn ? 'on' : 'off');
 $('btnMute').onclick = () => { initAudio(); toggleMusic(); $('btnMute').blur(); };
-function showTitle() { state = 'title'; loadLevel(0); showOv('title'); $('card').hidden = true; initAudio(); playSong('title'); }
+function showTitle() { state = 'title'; loadLevel(0); showOv('title'); $('card').hidden = true; showJar(); initAudio(); playSong('title'); }
 function startLevel(i) {
   initAudio(); sfx.click();
   levelIndex = i; loadLevel(i); state = 'play'; showOv(null);
@@ -1099,33 +1137,86 @@ function buildLevelGrid() {
   });
 }
 $('btnPlay').onclick = () => startLevel(0);
+let wardTab = 'hats', pendingBuy = null;
+function showJar() { $('jarNum').textContent = save.jar; $('titleJarNum').textContent = save.jar; }
+function wardCard(label, how, drawPortrait, onClick, cls) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const b = document.createElement('button'); b.className = 'hat' + (cls ? ' ' + cls : ''); b.type = 'button';
+  b.innerHTML = `<canvas width="${160 * dpr}" height="${110 * dpr}"></canvas><span class="nm">${label}</span>${how}`;
+  // Paint a little portrait with the shared capy painter by pointing it at this canvas for a moment.
+  const main = ctx; ctx = b.querySelector('canvas').getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  drawPortrait();
+  ctx = main;
+  b.onclick = onClick;
+  return b;
+}
+function portrait(sky, opts, locked) {
+  const bg = ctx.createLinearGradient(0, 0, 0, 110); bg.addColorStop(0, sky[0]); bg.addColorStop(1, sky[1]);
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, 160, 110);
+  ctx.translate(80, 100); ctx.scale(1.55, 1.55);
+  drawCapy(-5, 0, { dir: 1, sit: true, happy: !locked, noShadow: false, still: true, ...opts });
+  if (locked) { ctx.font = `22px ${FONT_D}`; ctx.textAlign = 'center'; ctx.fillStyle = '#FFFFFF'; ctx.fillText('?', 13, -50); }
+}
+function tryBuy(key, price) {
+  if (save.jar < price) { sfx.bump(); pendingBuy = null; buildWardrobe(); return false; }
+  if (pendingBuy !== key) { pendingBuy = key; sfx.click(); buildWardrobe(); return false; }
+  save.jar -= price; save.owned[key] = true; pendingBuy = null; persist(); sfx.power(); showJar();
+  return true;
+}
+function priceTag(key, price) {
+  if (pendingBuy === key) return `<span class="price">tap again to buy</span>`;
+  if (save.jar < price) return `<span class="how">${price} yuzu · need ${price - save.jar} more</span>`;
+  return `<span class="price"><span class="yz"></span>${price} yuzu</span>`;
+}
 function buildWardrobe() {
   const g = $('hatGrid'); g.innerHTML = '';
-  const worn = wornHat(), dpr = Math.min(window.devicePixelRatio || 1, 2);
-  HATS.forEach(h => {
-    const open = hatOpen(h);
-    const b = document.createElement('button'); b.className = 'hat'; b.type = 'button';
-    b.disabled = !open; b.setAttribute('aria-pressed', String(worn === h.id));
-    const how = h.lvl < 0 ? 'always here' : open ? 'from level ' + (h.lvl + 1) : 'find the duck in level ' + (h.lvl + 1);
-    b.innerHTML = `<canvas width="${160 * dpr}" height="${120 * dpr}"></canvas><span class="nm">${open ? h.name : '???'}</span><span class="how">${how}</span>`;
-    // Draw a little portrait with the shared capy painter by pointing it at this canvas for a moment.
-    const main = ctx; ctx = b.querySelector('canvas').getContext('2d');
-    const sky = THEMES[LEVELS[Math.max(0, h.lvl)].theme].sky;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const bg = ctx.createLinearGradient(0, 0, 0, 120); bg.addColorStop(0, sky[0]); bg.addColorStop(1, sky[1]);
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, 160, 120);
-    ctx.translate(80, 108); ctx.scale(1.7, 1.7);
-    drawCapy(-5, 0, { dir: 1, sit: true, happy: open, hat: open ? h.id : 'none', noShadow: false, still: true });
-    if (!open) { ctx.font = `22px ${FONT_D}`; ctx.textAlign = 'center'; ctx.fillStyle = '#FFFFFF'; ctx.fillText('?', 13, -46); }
-    ctx = main;
-    b.onclick = () => { save.hat = h.id; persist(); sfx.click(); buildWardrobe(); };
-    g.appendChild(b);
-  });
-  const n = Object.keys(save.ducks).length;
-  $('wardLine').textContent = n ? `${n} of 5 golden ducks found. Pick a hat for capy!` : 'Every level hides one golden rubber duck. Each duck you find unlocks a new hat.';
+  document.querySelectorAll('#wardTabs button').forEach(t => t.setAttribute('aria-pressed', String(t.dataset.tab === wardTab)));
+  showJar();
+  const fo = furOpts();
+  if (wardTab === 'hats') {
+    const worn = wornHat();
+    HATS.forEach(h => {
+      const open = hatOpen(h);
+      const sky = THEMES[LEVELS[Math.max(0, h.lvl != null ? h.lvl : 0)].theme].sky;
+      let how, cls = '';
+      if (open) how = `<span class="how">${h.lvl < 0 ? 'always here' : h.price ? 'yours to wear' : 'from level ' + (h.lvl + 1)}</span>`;
+      else if (h.price) { how = priceTag(h.id, h.price); cls = pendingBuy === h.id ? 'buy' : save.jar < h.price ? 'poor' : ''; }
+      else how = `<span class="how">find the duck in level ${h.lvl + 1}</span>`;
+      const locked = !open && !h.price;
+      const b = wardCard(open || h.price ? h.name : '???', how,
+        () => portrait(h.price ? ['#FFE3EC', '#FFF6E8'] : sky, { hat: locked ? 'none' : h.id, ...fo }, locked),
+        () => {
+          if (open) { save.hat = h.id; pendingBuy = null; persist(); sfx.click(); buildWardrobe(); }
+          else if (h.price && tryBuy(h.id, h.price)) { save.hat = h.id; persist(); buildWardrobe(); }
+        }, cls);
+      b.setAttribute('aria-pressed', String(worn === h.id));
+      if (locked) b.disabled = true;
+      g.appendChild(b);
+    });
+    const n = Object.keys(save.ducks).length;
+    $('wardLine').textContent = `Golden ducks unlock ${n} of 5 level hats. The rest are for sale with yuzu from your jar.`;
+  } else {
+    const worn = wornFur();
+    FURS.forEach(fu => {
+      const open = furOpen(fu), key = 'fur:' + fu.id;
+      const how = open ? `<span class="how">${fu.price ? 'yours to wear' : 'always here'}</span>` : priceTag(key, fu.price);
+      const cls = open ? '' : pendingBuy === key ? 'buy' : save.jar < fu.price ? 'poor' : '';
+      const b = wardCard(fu.name, how,
+        () => portrait(['#FFE3EC', '#FFF6E8'], { hat: wornHat(), fur: fu.fur, belly: fu.belly, head: fu.head, leg: fu.leg, snout: fu.snout }, false),
+        () => {
+          if (open) { save.fur = fu.id; pendingBuy = null; persist(); sfx.click(); buildWardrobe(); }
+          else if (tryBuy(key, fu.price)) { save.fur = fu.id; persist(); buildWardrobe(); }
+        }, cls);
+      b.setAttribute('aria-pressed', String(worn.id === fu.id));
+      g.appendChild(b);
+    });
+    $('wardLine').textContent = 'Pick a fur color for capy. Tap an item twice to buy it.';
+  }
 }
-$('btnTower').onclick = () => startLevel(TOWER);
-$('btnWardrobe').onclick = () => { initAudio(); sfx.click(); buildWardrobe(); showOv('wardrobe'); };
+document.querySelectorAll('#wardTabs button').forEach(t => t.addEventListener('click', () => { wardTab = t.dataset.tab; pendingBuy = null; sfx.click(); buildWardrobe(); }));
+$('btnWardrobe').onclick = () => { initAudio(); sfx.click(); pendingBuy = null; buildWardrobe(); showOv('wardrobe'); };
+showJar();
 $('btnWardBack').onclick = () => { sfx.click(); showOv('title'); };
 $('btnLevels').onclick = () => { initAudio(); sfx.click(); buildLevelGrid(); showOv('levels'); };
 $('btnBack').onclick = () => { sfx.click(); showOv('title'); };
@@ -1133,13 +1224,21 @@ $('btnResume').onclick = () => setPause(false);
 $('btnRestart').onclick = () => { if (actx) actx.resume(); startLevel(levelIndex); };
 $('btnQuit').onclick = () => { if (actx) actx.resume(); showTitle(); };
 $('btnNext').onclick = nextLevel;
-$('btnReplay').onclick = () => startLevel(levelIndex);
+$('btnReplay').onclick = () => { if (levelIndex === TOWER) { sfx.click(); showTitle(); } else startLevel(levelIndex); };
 $('btnAgain').onclick = () => startLevel(0);
 $('btnFinalLevels').onclick = () => { buildLevelGrid(); showOv('levels'); state = 'title'; };
 const CLEAR_TITLES = ['Ahh, bath time!', 'So warm, so cozy', 'Fluffy and relaxed', 'Sweet glowing dreams', 'Royal bath achieved!', 'Top of the tree!'];
 const fmtTime = f => { const s = f / 60; return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') + '.' + Math.floor((s % 1) * 10); };
 function showClearMenu() {
   state = 'clearMenu';
+  // bank this run's yuzu, plus bonuses, in the jar for the wardrobe shop
+  let earned = yuzuGot; const bonus = [];
+  if (lvl.duck && lvl.duck.got && !lvl.duck.had) { earned += 25; bonus.push('+25 golden duck'); }
+  if (levelIndex === 4) { earned += 30; bonus.push('+30 royal bath'); }
+  if (levelIndex === TOWER) { earned += 50; bonus.push('+50 top of the tree'); }
+  save.jar += earned; persist();
+  $('jarLine').innerHTML = `<span class="yz"></span>+${earned} yuzu for the jar` + (bonus.length ? ` (${bonus.join(', ')})` : '') + ` · ${save.jar} saved`;
+  $('btnReplay').textContent = 'Replay';
   const prev = save.best[levelIndex]; if (prev == null || yuzuGot > prev) { save.best[levelIndex] = yuzuGot; persist(); }
   $('clearNum').textContent = 'Level ' + (levelIndex + 1) + ' · ' + lvl.def.name;
   $('clearTitle').textContent = CLEAR_TITLES[levelIndex];
@@ -1157,6 +1256,7 @@ function showClearMenu() {
     $('stBonk').textContent = lvl.falls; $('lbBonk').textContent = lvl.falls === 1 ? 'fall' : 'falls';
     $('stDuck').textContent = isBest ? 'new!' : fmtTime(best); $('lbDuck').textContent = isBest ? 'best time' : 'best time to beat';
     $('btnNext').textContent = 'Climb again';
+    $('btnReplay').textContent = 'Home screen';
   }
   showOv('clear');
   setTimeout(() => $('btnNext').focus(), 50);
@@ -1484,16 +1584,16 @@ function updatePlayer() {
     } else {
       if (P.ground) { P.coyote = 7; P.doubleUsed = false; P.airDash = true; } else if (P.coyote > 0) P.coyote--;
       if (P.buffer > 0 && P.coyote > 0) {
-        P.vy = -10.8; P.coyote = 0; P.buffer = 0; P.ground = false; P.sq = -.18; sfx.jump();
+        P.vy = P.power === 'bunny' ? -15.3 : -10.8; P.coyote = 0; P.buffer = 0; P.ground = false; P.sq = -.18; sfx.jump();
         emit(cx, P.y + P.h, 'dust', 5, { c: '#FFFFFF', angle: Math.PI, spread: 3, speed: 1.2, g: 0, size: 7 });
       } else if (P.buffer > 0 && has('double') && !P.doubleUsed && !P.ground) {
-        P.vy = -9.6; P.doubleUsed = true; P.buffer = 0; P.noCut = false; P.sq = -.2; sfx.jump2();
+        P.vy = P.power === 'bunny' ? -15.4 : -9.6;   // with bunny ears, hop + double hop reach about 4x a normal hop P.doubleUsed = true; P.buffer = 0; P.noCut = false; P.sq = -.2; sfx.jump2();
         emit(cx, P.y + P.h, 'heart', 4, { c: '#FFC1D3', angle: Math.PI / 2, spread: 1.6, speed: 1.6, g: 0, life: 30 });
       }
       P.vy += .55;
       if (P.vy >= 0) P.noCut = false;
       if (!J && !P.noCut && P.vy < -3.5) P.vy += .9;
-      if (P.vy > 12) P.vy = 12;
+      if (P.vy > (P.power === 'bunny' ? 14 : 12)) P.vy = P.power === 'bunny' ? 14 : 12;
     }
   }
   if (P.inWater) { P.doubleUsed = false; P.airDash = true; }
@@ -2017,7 +2117,7 @@ function drawCapy(x, y, o) {
   if (o.alpha != null) ctx.globalAlpha = o.alpha;
   if (!o.noShadow) ell(0, 1, 24, 4, 'rgba(80,40,30,.15)');
   const lp = Math.sin(walk) * 3.2, lift = Math.abs(Math.cos(walk)) * 2;
-  ctx.fillStyle = '#8B5A3C';
+  ctx.fillStyle = o.leg || '#8B5A3C';
   if (!o.sit) { rr(-18 + lp, -9 - (o.air ? 2 : 0), 7, 10, 3.5); rr(-8 - lp, -9, 7, 10, 3.5); rr(6 + lp, -9, 7, 10, 3.5); rr(15 - lp, -9 - (o.air ? 2 : 0), 7, 10, 3.5); }
   const by = o.sit ? 0 : -lift * .5;
   ell(0, -19 + by, 25, 15.5, o.fur || '#BA8458');
@@ -2025,9 +2125,15 @@ function drawCapy(x, y, o) {
   ell(-12, -27 + by, 8, 3, 'rgba(255,255,255,.18)');
   const hy = by;
   rr(4, -40 + hy, 29, 25, 12, o.head || '#A9744D');
-  rr(25, -33 + hy, 10, 14, 6, '#8E5E3D');
+  rr(25, -33 + hy, 10, 14, 6, o.snout || '#8E5E3D');
   ell(30, -28 + hy, 1.8, 1.3, '#4A2E20');
-  ell(9, -39 + hy, 5, 4.5, '#8E5E3D'); ell(9, -39 + hy, 2.4, 2.1, '#F0A9A0');
+  if (o.bunny) {
+    // bunny ears from the power-up, wiggling a little
+    for (const [ex, a] of [[8, -.25 + Math.sin(tick * .2) * .08], [15, .12 - Math.sin(tick * .2 + 1) * .08]]) {
+      ctx.save(); ctx.translate(ex, -38 + hy); ctx.rotate(a); ell(0, -13, 4.2, 13, '#FFFFFF'); ell(0, -12, 2, 9.5, '#FFB8C8'); ctx.restore();
+    }
+  }
+  ell(9, -39 + hy, 5, 4.5, o.snout || '#8E5E3D'); ell(9, -39 + hy, 2.4, 2.1, '#F0A9A0');
   if (o.blink || o.happy) {
     ctx.strokeStyle = '#3A2418'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.arc(18, -29 + hy, 3, o.happy ? 1.15 * Math.PI : .1 * Math.PI, o.happy ? 1.85 * Math.PI : .9 * Math.PI); ctx.stroke();
@@ -2039,7 +2145,7 @@ function drawCapy(x, y, o) {
   const n = Math.min(o.yuzu || 0, 6);
   for (let i = 0; i < n; i++) {
     const sway = Math.sin(tick * .08 - i * .6) * i * .9 * (o.still ? .3 : 1);
-    drawYuzuAt(15 + sway, -46 + hy - lift2 - i * 11, 6.2, 0);
+    drawYuzuAt(15 + sway, -46 + hy - Math.max(lift2, o.bunny ? 18 : 0) - i * 11, 6.2, 0);
   }
   ctx.restore();
 }
@@ -2069,6 +2175,43 @@ function drawHat(kind, hy) {
       ctx.moveTo(7, -39 + hy); ctx.lineTo(8, -52 + hy); ctx.lineTo(13, -45 + hy); ctx.lineTo(18, -55 + hy); ctx.lineTo(23, -45 + hy); ctx.lineTo(28, -52 + hy); ctx.lineTo(29, -39 + hy); ctx.closePath(); ctx.fill();
       ell(18, -44 + hy, 2.4, 2.4, '#FF6F8E'); ell(10, -41 + hy, 1.4, 1.4, '#9EDBFF'); ell(26, -41 + hy, 1.4, 1.4, '#9EDBFF');
       return 13;
+    case 'flower':
+      ctx.strokeStyle = '#6FB55F'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(18, -30 + hy, 13, 1.12 * Math.PI, 1.88 * Math.PI); ctx.stroke();
+      [[7, -37], [12, -41], [18, -43], [24, -41], [29, -37]].forEach(([fx, fy], i) => {
+        const c = ['#FF8FAB', '#FFFFFF', '#FFD34D', '#FFFFFF', '#FF8FAB'][i];
+        for (let k = 0; k < 5; k++) { const a = k * 1.2566; ell(fx + Math.cos(a) * 2.4, fy + hy + Math.sin(a) * 2.4, 1.9, 1.9, c); }
+        ell(fx, fy + hy, 1.3, 1.3, '#FFB627');
+      });
+      return 6;
+    case 'sun':
+      ell(18, -39 + hy, 21, 4.8, '#F2D08A'); ell(18, -40 + hy, 18, 3, '#F7DDA3');
+      rr(9, -51 + hy, 18, 12, [8, 8, 2, 2], '#F2D08A'); rr(9, -44 + hy, 18, 3.5, 1.5, '#FF8FAB');
+      ell(24, -45 + hy, 2.4, 2.4, '#FFFFFF'); ell(24, -45 + hy, 1, 1, '#FFD34D');
+      return 11;
+    case 'party':
+      ctx.save(); ctx.beginPath(); ctx.moveTo(9, -39 + hy); ctx.lineTo(18, -62 + hy); ctx.lineTo(27, -39 + hy); ctx.closePath(); ctx.clip();
+      ctx.fillStyle = '#9EDBFF'; ctx.fillRect(8, -63 + hy, 20, 25);
+      ctx.fillStyle = '#FF9EC6'; for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.moveTo(8, -42 + hy - k * 6); ctx.lineTo(28, -48 + hy - k * 6); ctx.lineTo(28, -45 + hy - k * 6); ctx.lineTo(8, -39 + hy - k * 6); ctx.fill(); }
+      ctx.restore(); ell(18, -63 + hy, 3.4, 3.4, '#FFD34D');
+      return 20;
+    case 'chef':
+      rr(8, -49 + hy, 21, 10, 3, '#FFFFFF');
+      ell(12, -52 + hy, 6, 5.5, '#FFFFFF'); ell(19, -56 + hy, 7.5, 6.5, '#FFFFFF'); ell(25, -52 + hy, 6, 5.5, '#FFFFFF');
+      ctx.strokeStyle = '#EDE3DA'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(14, -48 + hy); ctx.lineTo(14, -41 + hy); ctx.moveTo(22, -48 + hy); ctx.lineTo(22, -41 + hy); ctx.stroke();
+      return 18;
+    case 'cat':
+      for (const ex of [9, 25]) {
+        ctx.fillStyle = '#6B4A3A'; ctx.beginPath(); ctx.moveTo(ex - 6, -37 + hy); ctx.lineTo(ex, -50 + hy); ctx.lineTo(ex + 6, -37 + hy); ctx.fill();
+        ctx.fillStyle = '#FFB8C8'; ctx.beginPath(); ctx.moveTo(ex - 3, -38 + hy); ctx.lineTo(ex, -46 + hy); ctx.lineTo(ex + 3, -38 + hy); ctx.fill();
+      }
+      rr(5, -40 + hy, 26, 3.5, 1.7, '#6B4A3A');
+      return 10;
+    case 'halo': {
+      const bob = Math.sin(tick * .06) * 1.5;
+      ctx.globalAlpha *= .35; ell(18, -52 + hy + bob, 15, 6, '#FFF3A8'); ctx.globalAlpha /= .35;
+      ctx.strokeStyle = '#FFD34D'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(18, -52 + hy + bob, 11, 3.6, 0, 0, Math.PI * 2); ctx.stroke();
+      return 14;
+    }
   }
   return 0;
 }
@@ -2143,7 +2286,7 @@ function drawPlayer() {
   if (P.dashT > 0) sq = .14; else if (P.pound === -1) sq = -.18;
   drawCapy(px, py + (P.sit ? 0 : 1), {
     dir: P.dir, sq, walk: P.walk, yuzu: Math.ceil(yuzuGot / 3), blink: P.blink > 0, air: !P.ground && !inW,
-    sit: P.sit || inW, happy: P.sit || state === 'clear' || star, noShadow: !P.ground, hat: wornHat()
+    sit: P.sit || inW, happy: P.sit || state === 'clear' || star, noShadow: !P.ground, hat: wornHat(), bunny: P.power === 'bunny', ...furOpts()
   });
   ctx.filter = 'none';
   if (P.pound > 0) { ctx.font = `22px ${FONT_D}`; ctx.textAlign = 'center'; ctx.fillStyle = '#E0457B'; ctx.fillText('!', px, P.y - 34); ctx.textAlign = 'left'; }
@@ -2174,6 +2317,12 @@ function drawPowerIcon(type, x, y, s) {
       ctx.beginPath(); ctx.arc(x, y, s * .55, 0, Math.PI); ctx.stroke();
       ctx.fillStyle = '#FF6F8E'; ctx.fillRect(x - s * .76, y - s * .5, s * .42, s * .5); ctx.fillRect(x + s * .34, y - s * .5, s * .42, s * .5);
       ctx.fillStyle = '#FFFFFF'; ctx.fillRect(x - s * .76, y - s * .75, s * .42, s * .28); ctx.fillRect(x + s * .34, y - s * .75, s * .42, s * .28);
+      break;
+    case 'bunny':
+      for (const [ex, a] of [[-s * .35, -.2], [s * .35, .2]]) {
+        ctx.save(); ctx.translate(x + ex, y + s * .5); ctx.rotate(a); ell(0, -s * .7, s * .32, s * .8, '#FFFFFF'); ell(0, -s * .66, s * .15, s * .58, '#FFB8C8'); ctx.restore();
+      }
+      ell(x, y + s * .55, s * .55, s * .32, '#FFFFFF');
       break;
     case 'cake':
       heart(x, y - s * .7, s * 1.5, '#FF8FAB');
@@ -2542,7 +2691,7 @@ function drawTitleScene() {
   const tx = 372;
   ctx.fillStyle = 'rgba(255,255,255,.55)';
   for (let i = 0; i < 4; i++) { const k = ((tick * .6 + i * 30) % 120) / 120; ell(tx - 24 + i * 16 + Math.sin(k * 6 + i) * 6, gy - 46 - k * 70, 9 + k * 8, 7 + k * 6); }
-  drawCapy(tx + 6, gy - 30, { dir: -1, sit: true, happy: true, noShadow: true, still: true, hat: wornHat(), yuzu: 1 });
+  drawCapy(tx + 6, gy - 30, { dir: -1, sit: true, happy: true, noShadow: true, still: true, hat: wornHat(), yuzu: 1, ...furOpts() });
   ell(tx, gy - 34, 44, 9, '#8FDCD6'); ell(tx - 10, gy - 36, 12, 3, 'rgba(255,255,255,.6)');
   drawYuzuAt(tx + 24, gy - 36 + Math.sin(tick * .05) * 1.5, 6, 0);
   rr(tx - 48, gy - 36, 96, 36, [10, 10, 16, 16], '#D69A62');
